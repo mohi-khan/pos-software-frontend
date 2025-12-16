@@ -769,55 +769,101 @@ const InventoryManagement: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 mt-10 border-t-2 border-green-500">
       <div className="bg-white border-b">
-        <div className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => openModal()} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center gap-2 font-medium">
-              <Plus size={18} /> ADD ITEM
-            </button>
-            
-            {selectedItems.size > 0 ? (
-              <button onClick={deleteSelectedItems} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded flex items-center gap-2 font-medium">
-                <Trash2 size={18} /> DELETE ({selectedItems.size})
-              </button>
-            ) : (
-              <>
-                <label className="text-gray-700 font-medium px-4 py-2 hover:bg-gray-100 rounded cursor-pointer">
-                  IMPORT
-                  <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
-                </label>
-                <button onClick={exportToCSV} className="text-gray-700 font-medium px-4 py-2 hover:bg-gray-100 rounded">
-                  EXPORT
-                </button>
-              </>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-4">
+        <div className="p-3 md:p-4">
+          {/* Mobile Layout */}
+          <div className="md:hidden space-y-3">
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600">Category</label>
-              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="border rounded px-3 py-1.5 text-sm bg-white min-w-[150px]">
+              <button onClick={() => openModal()} className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded flex items-center gap-2 font-medium text-sm flex-1">
+                <Plus size={16} /> ADD ITEM
+              </button>
+              
+              {selectedItems.size > 0 ? (
+                <button onClick={deleteSelectedItems} className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded flex items-center gap-2 font-medium text-sm flex-1">
+                  <Trash2 size={16} /> DELETE ({selectedItems.size})
+                </button>
+              ) : (
+                <>
+                  <label className="text-gray-700 font-medium px-3 py-2 hover:bg-gray-100 rounded cursor-pointer text-sm border">
+                    IMPORT
+                    <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
+                  </label>
+                  <button onClick={exportToCSV} className="text-gray-700 font-medium px-3 py-2 hover:bg-gray-100 rounded text-sm border">
+                    EXPORT
+                  </button>
+                </>
+              )}
+            </div>
+            
+            <div className="relative">
+              <input type="text" placeholder="Search items..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="border rounded px-3 py-2 pr-10 text-sm w-full" />
+              <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="border rounded px-2 py-2 text-sm bg-white">
                 <option>All items</option>
                 <option>riad</option>
                 <option>ziad</option>
               </select>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600">Stock alert</label>
-              <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)} className="border rounded px-3 py-1.5 text-sm bg-white min-w-[150px]">
-                <option>All items</option>
+              
+              <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)} className="border rounded px-2 py-2 text-sm bg-white">
+                <option>Stock: All</option>
               </select>
             </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden md:flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button onClick={() => openModal()} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center gap-2 font-medium">
+                <Plus size={18} /> ADD ITEM
+              </button>
+              
+              {selectedItems.size > 0 ? (
+                <button onClick={deleteSelectedItems} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded flex items-center gap-2 font-medium">
+                  <Trash2 size={18} /> DELETE ({selectedItems.size})
+                </button>
+              ) : (
+                <>
+                  <label className="text-gray-700 font-medium px-4 py-2 hover:bg-gray-100 rounded cursor-pointer">
+                    IMPORT
+                    <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
+                  </label>
+                  <button onClick={exportToCSV} className="text-gray-700 font-medium px-4 py-2 hover:bg-gray-100 rounded">
+                    EXPORT
+                  </button>
+                </>
+              )}
+            </div>
             
-            <div className="relative">
-              <input type="text" placeholder="Search items..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="border rounded px-3 py-2 pr-10 text-sm w-64" />
-              <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Category</label>
+                <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="border rounded px-3 py-1.5 text-sm bg-white min-w-[150px]">
+                  <option>All items</option>
+                  <option>riad</option>
+                  <option>ziad</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Stock alert</label>
+                <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)} className="border rounded px-3 py-1.5 text-sm bg-white min-w-[150px]">
+                  <option>All items</option>
+                </select>
+              </div>
+              
+              <div className="relative">
+                <input type="text" placeholder="Search items..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="border rounded px-3 py-2 pr-10 text-sm w-64" />
+                <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
             </div>
           </div>
         </div>
       </div>
+      
 
       <div className="bg-white m-4 rounded-lg shadow-sm">
         <table className="w-full">
@@ -1101,7 +1147,7 @@ const InventoryManagement: React.FC = () => {
                       <input type="text" placeholder="Press Enter to add the value" className="w-full border rounded px-3 py-2 text-sm" onKeyPress={(e) => {
                         if (e.key === 'Enter' && e.currentTarget.value) {
                           addVariantValue(vIdx, e.currentTarget.value);
-                          e.currentTarget.value = '';
+                      e.currentTarget.value = '';
                         }
                       }} />
                     </div>

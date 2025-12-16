@@ -8,7 +8,11 @@ type Category = {
 }
 
 const Categories: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>([])
+  const [categories, setCategories] = useState<Category[]>([
+    { name: 'Work', color: '#2196F3' },
+    { name: 'Personal', color: '#4CAF50' },
+    { name: 'Shopping', color: '#FF9800' },
+  ])
   const [open, setOpen] = useState<boolean>(false)
   const [name, setName] = useState<string>('')
   const [color, setColor] = useState<string>('#F44336')
@@ -90,7 +94,8 @@ const Categories: React.FC = () => {
   }
 
   // Check if all categories are selected
-  const allSelected = categories.length > 0 && selected.size === categories.length
+  const allSelected =
+    categories.length > 0 && selected.size === categories.length
 
   // Delete selected categories
   const deleteSelected = (): void => {
@@ -112,7 +117,7 @@ const Categories: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-3 mt-10 border-t-2 border-green-500">
       {/* Header with Add and Delete buttons */}
       <div className="flex gap-4 items-center">
         <button
