@@ -17,6 +17,8 @@ import {
   User2,
   LogOut,
   KeyRound,
+  ShoppingBag,
+  PilcrowSquare,
 } from 'lucide-react'
 
 export function DashboardSidebar() {
@@ -88,6 +90,28 @@ export function DashboardSidebar() {
         {
           title: 'Customers',
           href: '/customers/customers',
+        },
+      ],
+    },
+    {
+      title: 'Suplier',
+      icon: PilcrowSquare,
+      href: '/dashboard/customers',
+      subItems: [
+        {
+          title: 'Suplier',
+          href: '/suplier/suplier',
+        },
+      ],
+    },
+    {
+      title: 'Inventory Management',
+      icon: ShoppingBag,
+      href: '/dashboard/customers',
+      subItems: [
+        {
+          title: 'Purchase Orders',
+          href: '/Inventory_management/purchase_orders',
         },
       ],
     },

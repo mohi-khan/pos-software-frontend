@@ -10,7 +10,7 @@ import { ReactQueryProvider } from '@/provider/ReactQueryProvider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'school management',
+  title: 'POS System',
   description: 'Created with Next.js, TypeScript, Tailwind CSS, and shadcn/ui',
 }
 
