@@ -20,8 +20,12 @@ import {
   ShoppingBag,
   PilcrowSquare,
 } from 'lucide-react'
+import { useInitializeUser, userDataAtom } from '@/utils/user'
+import { useAtom } from 'jotai'
 
 export function DashboardSidebar() {
+  useInitializeUser()
+  const [userData] = useAtom(userDataAtom)
   const pathname = usePathname()
   const router = useRouter()
   const [isExpanded, setIsExpanded] = useState(true)
@@ -30,6 +34,8 @@ export function DashboardSidebar() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({})
   const userMenuRef = useRef<HTMLDivElement>(null)
+
+  console.log('show all user data after login : ', userData?.userId)
 
   useEffect(() => {
     const checkMobile = () => {
@@ -205,7 +211,7 @@ export function DashboardSidebar() {
                   : 'opacity-0 w-0 overflow-hidden'
               }`}
             >
-            Dashboard
+              Dashboard
             </h1>
           </div>
         </div>
@@ -296,7 +302,7 @@ export function DashboardSidebar() {
         </div>
 
         {/* Footer - User Menu */}
-        <div className="border-t border-gray-200 p-3 flex-shrink-0">
+        {/* <div className="border-t border-gray-200 p-3 flex-shrink-0">
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -310,8 +316,81 @@ export function DashboardSidebar() {
               </div>
               {(isMobile || isExpanded) && (
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-gray-900">User Name</p>
-                  <p className="text-xs text-gray-500">user@example.com</p>
+                 {userData?.username && (
+              <p className="text-xl text-gray-700 font-bold ring-1 ring-black rounded-lg px-2 py-1  text-center">
+                {userData.username.replace(/\b\w/g, (c:any) => c.toUpperCase())}
+              </p>
+            )}
+                  
+                </div>
+              )}
+            </button>
+
+           
+            {isUserMenuOpen && (
+              <div
+                className={`
+                absolute bottom-full mb-2 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden
+                ${isMobile || isExpanded ? 'left-0 right-0' : 'left-0 w-48'}
+              `}
+              >
+                <Link
+                  href="/change-password"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
+                  onClick={() => {
+                    setIsUserMenuOpen(false)
+                    handleLinkClick()
+                  }}
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span className="text-sm">Change Password</span>
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700 border-t border-gray-100"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="text-sm">Sign out</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div> */}
+        <div className="border-t border-gray-200 p-3 flex-shrink-0">
+          <div className="relative" ref={userMenuRef}>
+            <button
+              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              className={`
+        w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors
+        ${isMobile || isExpanded ? 'justify-start' : 'justify-center'}
+      `}
+            >
+              {/* Avatar */}
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+                {userData?.username ? (
+                  userData.username
+                    .split(' ')
+                    .map((n: string) => n[0])
+                    .join('')
+                    .toUpperCase()
+                ) : (
+                  <User2 className="w-5 h-5 text-white" />
+                )}
+              </div>
+
+              {/* Username & optional role/email */}
+              {(isMobile || isExpanded) && userData?.username && (
+                <div className="flex-1 flex flex-col justify-center text-left overflow-hidden">
+                  <span className="text-gray-900 font-semibold text-base truncate">
+                    {userData.username.replace(/\b\w/g, (c: any) =>
+                      c.toUpperCase()
+                    )}
+                  </span>
+                  {userData.email && (
+                    <span className="text-gray-500 text-sm truncate">
+                      {userData.email}
+                    </span>
+                  )}
                 </div>
               )}
             </button>
@@ -320,9 +399,9 @@ export function DashboardSidebar() {
             {isUserMenuOpen && (
               <div
                 className={`
-                absolute bottom-full mb-2 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden
-                ${isMobile || isExpanded ? 'left-0 right-0' : 'left-0 w-48'}
-              `}
+          absolute bottom-full mb-2 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden
+          ${isMobile || isExpanded ? 'left-0 right-0' : 'left-0 w-48'}
+        `}
               >
                 <Link
                   href="/change-password"

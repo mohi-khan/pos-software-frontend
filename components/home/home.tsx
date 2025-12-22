@@ -58,6 +58,7 @@ export default function SignIn() {
         const {
           userId,
           roleId,
+          username
           // userCompanies,
           // voucherTypes,
           // employeeId,
@@ -66,6 +67,7 @@ export default function SignIn() {
         const userInfo = {
           userId,
           roleId,
+          username
           // userCompanies,
           // voucherTypes,
           // employeeId,
@@ -100,9 +102,9 @@ export default function SignIn() {
               height={80}
               className=""
             /> */}
-            <h2 className="text-3xl font-bold ">School Management</h2>
+            <h2 className="text-3xl font-bold ">POS SYSTEM</h2>
           </div>
-          <CardTitle className="text-2xl font-bold text-center">
+          <CardTitle className="text-xl font-bold text-center">
             Sign in to your account
           </CardTitle>
           <CardDescription className="text-center">
