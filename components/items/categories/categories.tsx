@@ -1,18 +1,23 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import {
+  useCategories,
+  useCreateCategory,
+  useEditCategory,
+  useDeleteCategory,
+} from '@/hooks/use-categories'
+import { CreateCategory, GetCategory, UpdateCategory } from '@/types/categories'
 
 type Category = {
+  id?: string
   name: string
   color: string
 }
 
 const Categories: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>([
-    { name: 'Work', color: '#2196F3' },
-    { name: 'Personal', color: '#4CAF50' },
-    { name: 'Shopping', color: '#FF9800' },
-  ])
+  const { data: categoriesData, isLoading, error } = useCategories()
+  const [categories, setCategories] = useState<Category[]>([])
   const [open, setOpen] = useState<boolean>(false)
   const [name, setName] = useState<string>('')
   const [color, setColor] = useState<string>('#F44336')
@@ -32,11 +37,41 @@ const Categories: React.FC = () => {
     '#9C27B0',
   ]
 
-  // Open Add Modal
-  const openAdd = (): void => {
+  // Reset modal fields
+  const reset = () => {
     setName('')
     setColor('#F44336')
     setEditIndex(null)
+  }
+
+  // Create/Edit/Delete hooks
+  const createMutation = useCreateCategory({
+    onClose: () => setOpen(false),
+    reset,
+  })
+
+  const editMutation = useEditCategory({
+    onClose: () => setOpen(false),
+    reset,
+  })
+
+  const deleteMutation = useDeleteCategory()
+
+  useEffect(() => {
+    if (categoriesData) {
+      setCategories(
+        categoriesData.map((c: GetCategory) => ({
+          id: c.categoryId.toString(), // convert number to string for consistency
+          name: c.name,
+          color: c.color || '#2196F3',
+        }))
+      )
+    }
+  }, [categoriesData])
+
+  // Open Add Modal
+  const openAdd = (): void => {
+    reset()
     setOpen(true)
   }
 
@@ -48,77 +83,71 @@ const Categories: React.FC = () => {
     setOpen(true)
   }
 
-  // Save Category
+  // Save Category (Create or Update)
   const handleSave = (): void => {
     if (!name.trim()) return
 
-    if (editIndex !== null) {
-      const updated = [...categories]
-      updated[editIndex] = { name, color }
-      setCategories(updated)
+    if (editIndex !== null && categories[editIndex]?.id) {
+      const updateData: UpdateCategory = { name, color }
+      editMutation.mutate({ id: categories[editIndex].id!, data: updateData })
     } else {
-      setCategories((prev) => [...prev, { name, color }])
+      const createData: CreateCategory = { name, color }
+      createMutation.mutate(createData)
     }
-
-    setOpen(false)
   }
 
-  // Delete Category
+  // Delete a single category
   const handleDelete = (): void => {
     if (editIndex === null) return
-    setCategories((prev) => prev.filter((_, i) => i !== editIndex))
+    const id = categories[editIndex]?.id
+    if (id) deleteMutation.mutate(id)
     setOpen(false)
   }
 
-  // Toggle checkbox selection
-  const toggleSelect = (index: number): void => {
-    const newSelected = new Set(selected)
-    if (newSelected.has(index)) {
-      newSelected.delete(index)
-    } else {
-      newSelected.add(index)
-    }
-    setSelected(newSelected)
-  }
-
-  // Toggle select all
-  const toggleSelectAll = (): void => {
-    if (selected.size === categories.length) {
-      // If all are selected, deselect all
-      setSelected(new Set())
-    } else {
-      // Select all categories
-      const allIndices = categories.map((_, index) => index)
-      setSelected(new Set(allIndices))
-    }
-  }
-
-  // Check if all categories are selected
-  const allSelected =
-    categories.length > 0 && selected.size === categories.length
-
-  // Delete selected categories
+  // Bulk Delete
   const deleteSelected = (): void => {
-    setCategories((prev) => prev.filter((_, i) => !selected.has(i)))
+    selected.forEach((index) => {
+      const id = categories[index]?.id
+      if (id) deleteMutation.mutate(id)
+    })
     setSelected(new Set())
     setCurrentPage(1)
   }
 
-  // Pagination calculations
+  // Selection handlers
+  const toggleSelect = (index: number): void => {
+    const newSelected = new Set(selected)
+    if (newSelected.has(index)) newSelected.delete(index)
+    else newSelected.add(index)
+    setSelected(newSelected)
+  }
+
+  const toggleSelectAll = (): void => {
+    if (selected.size === categories.length) setSelected(new Set())
+    else setSelected(new Set(categories.map((_, i) => i)))
+  }
+
+  const allSelected =
+    categories.length > 0 && selected.size === categories.length
+
+  // Pagination
   const totalPages = Math.ceil(categories.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const paginatedCategories = categories.slice(startIndex, endIndex)
 
-  // Handle items per page change
   const handleItemsPerPageChange = (newItemsPerPage: number): void => {
     setItemsPerPage(newItemsPerPage)
-    setCurrentPage(1) // Reset to first page when changing items per page
+    setCurrentPage(1)
   }
+
+  if (isLoading) return <p className="p-3">Loading categories...</p>
+  if (error)
+    return <p className="p-3 text-red-500">Failed to load categories</p>
 
   return (
     <div className="p-3 mt-10 border-t-2 border-green-500">
-      {/* Header with Add and Delete buttons */}
+      {/* Header */}
       <div className="flex gap-4 items-center">
         <button
           onClick={openAdd}
@@ -140,7 +169,6 @@ const Categories: React.FC = () => {
 
       {/* Category List */}
       <div className="mt-6">
-        {/* Header Row with Select All */}
         {categories.length > 0 && (
           <div className="flex items-center gap-4 py-3 border-b bg-gray-50">
             <input
@@ -153,7 +181,6 @@ const Categories: React.FC = () => {
           </div>
         )}
 
-        {/* Category Items */}
         {paginatedCategories.map((cat, displayIndex) => {
           const actualIndex = startIndex + displayIndex
           return (
@@ -213,9 +240,7 @@ const Categories: React.FC = () => {
               value={currentPage}
               onChange={(e) => {
                 const page = parseInt(e.target.value)
-                if (page >= 1 && page <= totalPages) {
-                  setCurrentPage(page)
-                }
+                if (page >= 1 && page <= totalPages) setCurrentPage(page)
               }}
               className="w-16 border rounded px-2 py-1 text-center"
               min={1}
@@ -248,7 +273,6 @@ const Categories: React.FC = () => {
               {editIndex !== null ? 'Edit Category' : 'Add Category'}
             </h2>
 
-            {/* Name Input */}
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -256,7 +280,6 @@ const Categories: React.FC = () => {
               className="w-full border px-3 py-2 rounded mb-6"
             />
 
-            {/* Color Picker */}
             <div className="flex gap-3 mb-8">
               {colors.map((c) => (
                 <div
@@ -273,9 +296,7 @@ const Categories: React.FC = () => {
               ))}
             </div>
 
-            {/* Actions */}
             <div className="flex justify-between items-center">
-              {/* Delete Button (Bottom Left) */}
               {editIndex !== null && (
                 <button
                   onClick={handleDelete}
@@ -287,7 +308,6 @@ const Categories: React.FC = () => {
                 </button>
               )}
 
-              {/* Save / Cancel */}
               <div className="flex gap-6 ml-auto">
                 <button
                   onClick={() => setOpen(false)}
@@ -296,7 +316,6 @@ const Categories: React.FC = () => {
                 >
                   CANCEL
                 </button>
-
                 <button
                   onClick={handleSave}
                   type="button"
