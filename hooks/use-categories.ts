@@ -40,7 +40,13 @@ export const useCategories = () => {
 }
 
 // CREATE hook
-export const useCreateCategory = ({ onClose, reset }: { onClose: () => void; reset: () => void }) => {
+export const useCreateCategory = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
   useInitializeUser()
   const queryClient = useQueryClient()
   const [token] = useAtom(tokenAtom)
@@ -48,14 +54,30 @@ export const useCreateCategory = ({ onClose, reset }: { onClose: () => void; res
   return useMutation({
     mutationFn: async (data: CreateCategory) => {
       if (!token) throw new Error('Token not found')
+
+      // 🔹 Get existing categories from cache
+      const categories = queryClient.getQueryData<GetCategory[]>(['categories'])
+
+      // 🔹 Check duplicate name (case-insensitive)
+      const isDuplicate = categories?.some(
+        (cat) =>
+          cat.name.trim().toLowerCase() === data.name.trim().toLowerCase()
+      )
+
+      if (isDuplicate) {
+        throw new Error('Category name already exists')
+      }
+
       return createCategory(data, token)
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       onClose()
       reset()
       toast({ title: 'Category created successfully' })
     },
+
     onError: (err: any) => {
       toast({
         title: 'Create failed',
@@ -66,9 +88,13 @@ export const useCreateCategory = ({ onClose, reset }: { onClose: () => void; res
   })
 }
 
-
-// UPDATE hook
-export const useEditCategory = ({ onClose, reset }: { onClose: () => void; reset: () => void }) => {
+export const useEditCategory = ({
+  onClose,
+  reset,
+}: {
+  onClose: () => void
+  reset: () => void
+}) => {
   useInitializeUser()
   const queryClient = useQueryClient()
   const [token] = useAtom(tokenAtom)
@@ -76,14 +102,30 @@ export const useEditCategory = ({ onClose, reset }: { onClose: () => void; reset
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateCategory }) => {
       if (!token) throw new Error('Token not found')
+
+      // 🔹 Get cached categories
+      const categories = queryClient.getQueryData<GetCategory[]>(['categories'])
+
+      // 🔹 Check duplicate name except current category
+      const isDuplicate = categories?.some(
+        (cat) =>
+          cat.name.trim().toLowerCase() === data.name.trim().toLowerCase()
+      )
+
+      if (isDuplicate) {
+        throw new Error('Category name already exists')
+      }
+
       return editCategory(id, data, token)
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       onClose()
       reset()
       toast({ title: 'Category updated successfully' })
     },
+
     onError: (err: any) => {
       toast({
         title: 'Update failed',
@@ -93,7 +135,6 @@ export const useEditCategory = ({ onClose, reset }: { onClose: () => void; reset
     },
   })
 }
-
 
 // DELETE hook
 export const useDeleteCategory = () => {

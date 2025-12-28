@@ -19,9 +19,12 @@ import {
   KeyRound,
   ShoppingBag,
   PilcrowSquare,
+  Settings2,
+  SettingsIcon,
 } from 'lucide-react'
 import { useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
+import { se } from 'date-fns/locale'
 
 export function DashboardSidebar() {
   useInitializeUser()
@@ -118,6 +121,25 @@ export function DashboardSidebar() {
         {
           title: 'Purchase Orders',
           href: '/Inventory_management/purchase_orders',
+        },
+        {
+          title: 'Transfer Orders',
+          href: '/Inventory_management/transfer-orders',
+        },
+      ],
+    },
+    {
+      title: 'Store & POS settings',
+      icon: SettingsIcon,
+      href: '/dashboard/customers',
+      subItems: [
+        {
+          title: 'POS Devices',
+          href: '/pos-settings/pos-device',
+        },
+        {
+          title: 'POS Stores',
+          href: '/pos-settings/pos-stores',
         },
       ],
     },

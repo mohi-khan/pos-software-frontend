@@ -15,6 +15,6 @@ export type CreateCategory = {
 
 // UpdateCategory type
 export type UpdateCategory = {
-  name?: string
-  color?: string
+  name: string
+  color: string
 }
