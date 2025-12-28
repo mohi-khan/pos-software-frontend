@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Plus,
   Search,
@@ -39,74 +39,83 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-
-type Supplier = {
-  id: number
-  name: string
-  contact: string
-  email: string
-  phone: string
-  website: string
-  address1: string
-  address2: string
-  city: string
-  region: string
-  postalCode: string
-  country: string
-  note: string
-}
+import {
+  useSuppliers,
+  useCreateSupplier,
+  useEditSupplier,
+  useDeleteSupplier,
+} from '@/hooks/use-supplier'
+import { GetSupplier, CreateSupplierPayload } from '@/types/items'
 
 export default function Suppliers() {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
-  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
+  const [editingSupplier, setEditingSupplier] = useState<GetSupplier | null>(
+    null
+  )
   const [selectedSuppliers, setSelectedSuppliers] = useState<number[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [rowsPerPage, setRowsPerPage] = useState(10)
 
-  const [suppliers, setSuppliers] = useState<Supplier[]>([
-    {
-      id: 1,
-      name: 'riad',
-      contact: '01876980021',
-      email: 'riadchy37@gmail.com',
-      phone: '01876980021',
-      website: 'nul',
-      address1: 'sfgsf',
-      address2: 'fajfaj',
-      city: 'ffsifj',
-      region: 'sfjsfij',
-      postalCode: 'ase3224',
-      country: 'Bangladesh',
-      note: 'asdas',
-    },
-  ])
-
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<CreateSupplierPayload>({
     name: '',
-    contact: '',
     email: '',
     phone: '',
-    website: '',
-    address1: '',
-    address2: '',
+    address: '',
     city: '',
     region: '',
     postalCode: '',
     country: 'Bangladesh',
+    supplierCode: '',
     note: '',
   })
 
-  const filteredSuppliers = suppliers.filter((supplier) => {
-    const q = search.toLowerCase()
-    return (
-      supplier.name.toLowerCase().includes(q) ||
-      supplier.contact.toLowerCase().includes(q) ||
-      supplier.email.toLowerCase().includes(q) ||
-      supplier.phone.includes(q)
-    )
+  // Fetch suppliers
+  const { data: suppliers, isLoading, error } = useSuppliers()
+
+  // Reset form function
+  const resetForm = () => {
+    setForm({
+      name: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: '',
+      region: '',
+      postalCode: '',
+      country: 'Bangladesh',
+      supplierCode: '',
+      note: '',
+    })
+  }
+
+  // Create supplier mutation
+  const createMutation = useCreateSupplier({
+    onClose: () => setOpen(false),
+    reset: resetForm,
   })
 
+  // Edit supplier mutation
+  const editMutation = useEditSupplier({
+    onClose: () => setOpen(false),
+    reset: resetForm,
+  })
+
+  // Delete supplier mutation
+  const deleteMutation = useDeleteSupplier()
+
+  // Filter suppliers
+  const filteredSuppliers =
+    suppliers?.filter((supplier) => {
+      const q = search.toLowerCase()
+      return (
+        supplier.name.toLowerCase().includes(q) ||
+        supplier.email?.toLowerCase().includes(q) ||
+        supplier.phone?.includes(q)
+      )
+    }) || []
+
+  // Pagination
   const totalPages = Math.ceil(filteredSuppliers.length / rowsPerPage)
   const startIndex = (currentPage - 1) * rowsPerPage
   const paginatedSuppliers = filteredSuppliers.slice(
@@ -114,110 +123,61 @@ export default function Suppliers() {
     startIndex + rowsPerPage
   )
 
-  const handleEdit = (supplier: Supplier) => {
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search])
+
+  const handleEdit = (supplier: GetSupplier) => {
     setEditingSupplier(supplier)
     setForm({
       name: supplier.name,
-      contact: supplier.contact,
-      email: supplier.email,
-      phone: supplier.phone,
-      website: supplier.website,
-      address1: supplier.address1,
-      address2: supplier.address2,
-      city: supplier.city,
-      region: supplier.region,
-      postalCode: supplier.postalCode,
-      country: supplier.country,
-      note: supplier.note,
+      email: supplier.email || '',
+      phone: supplier.phone || '',
+      address: supplier.address || '',
+      city: supplier.city || '',
+      region: supplier.region || '',
+      postalCode: supplier.postalCode || '',
+      country: supplier.country || 'Bangladesh',
+      supplierCode: supplier.supplierCode || '',
+      note: supplier.note || '',
     })
     setOpen(true)
   }
 
   const handleSave = () => {
-    if (!form.name) return
-
-    if (editingSupplier) {
-      // Update existing supplier
-      setSuppliers((prev) =>
-        prev.map((s) =>
-          s.id === editingSupplier.id
-            ? {
-                ...s,
-                name: form.name,
-                contact: form.contact,
-                email: form.email,
-                phone: form.phone,
-                website: form.website,
-                address1: form.address1,
-                address2: form.address2,
-                city: form.city,
-                region: form.region,
-                postalCode: form.postalCode,
-                country: form.country,
-                note: form.note,
-              }
-            : s
-        )
-      )
-    } else {
-      // Add new supplier
-      setSuppliers((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          name: form.name,
-          contact: form.contact,
-          email: form.email,
-          phone: form.phone,
-          website: form.website,
-          address1: form.address1,
-          address2: form.address2,
-          city: form.city,
-          region: form.region,
-          postalCode: form.postalCode,
-          country: form.country,
-          note: form.note,
-        },
-      ])
+    if (!form.name.trim()) {
+      return
     }
 
-    // Reset form
-    setForm({
-      name: '',
-      contact: '',
-      email: '',
-      phone: '',
-      website: '',
-      address1: '',
-      address2: '',
-      city: '',
-      region: '',
-      postalCode: '',
-      country: 'Bangladesh',
-      note: '',
-    })
+    // Prepare payload - remove empty strings
+    const payload: CreateSupplierPayload = {
+      name: form.name.trim(),
+      ...(form.email && { email: form.email.trim() }),
+      ...(form.phone && { phone: form.phone.trim() }),
+      ...(form.address && { address: form.address.trim() }),
+      ...(form.city && { city: form.city.trim() }),
+      ...(form.region && { region: form.region.trim() }),
+      ...(form.postalCode && { postalCode: form.postalCode.trim() }),
+      ...(form.country && { country: form.country }),
+      ...(form.supplierCode && { supplierCode: form.supplierCode.trim() }),
+      ...(form.note && { note: form.note.trim() }),
+    }
 
-    setEditingSupplier(null)
-    setOpen(false)
+    if (editingSupplier) {
+      editMutation.mutate({
+        id: editingSupplier.supplierId.toString(),
+        data: payload,
+      })
+    } else {
+      createMutation.mutate(payload)
+    }
   }
 
   const handleDialogClose = (isOpen: boolean) => {
     if (!isOpen) {
       setEditingSupplier(null)
-      setForm({
-        name: '',
-        contact: '',
-        email: '',
-        phone: '',
-        website: '',
-        address1: '',
-        address2: '',
-        city: '',
-        region: '',
-        postalCode: '',
-        country: 'Bangladesh',
-        note: '',
-      })
+      resetForm()
     }
     setOpen(isOpen)
   }
@@ -229,7 +189,7 @@ export default function Suppliers() {
     ) {
       setSelectedSuppliers([])
     } else {
-      setSelectedSuppliers(paginatedSuppliers.map((s) => s.id))
+      setSelectedSuppliers(paginatedSuppliers.map((s) => s.supplierId))
     }
   }
 
@@ -240,9 +200,12 @@ export default function Suppliers() {
   }
 
   const handleDelete = () => {
-    setSuppliers((prev) =>
-      prev.filter((s) => !selectedSuppliers.includes(s.id))
-    )
+    if (selectedSuppliers.length === 0) return
+
+    // Delete all selected suppliers
+    selectedSuppliers.forEach((id) => {
+      deleteMutation.mutate(id.toString())
+    })
     setSelectedSuppliers([])
   }
 
@@ -262,10 +225,15 @@ export default function Suppliers() {
           {selectedSuppliers.length > 0 && (
             <button
               onClick={handleDelete}
-              className="flex items-center gap-2 text-gray-700 border border-gray-300 px-4 py-2 rounded"
+              disabled={deleteMutation.isPending}
+              className="flex items-center gap-2 text-gray-700 border border-gray-300 px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
             >
               <span className="text-xl">🗑</span>
-              <span className="font-medium">DELETE</span>
+              <span className="font-medium">
+                DELETE{' '}
+                {selectedSuppliers.length > 1 &&
+                  `(${selectedSuppliers.length})`}
+              </span>
             </button>
           )}
         </div>
@@ -281,6 +249,13 @@ export default function Suppliers() {
           <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 cursor-pointer" />
         </div>
       </div>
+
+      {/* Loading & Error States */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
+          Error loading suppliers: {error.message}
+        </div>
+      )}
 
       {/* Suppliers Table */}
       <div className="rounded-md border bg-white shadow-sm">
@@ -300,22 +275,28 @@ export default function Suppliers() {
                 Name
               </TableHead>
               <TableHead className="text-gray-600 font-semibold">
-                Contact
-              </TableHead>
-              <TableHead className="text-gray-600 font-semibold">
-                Phone number
-              </TableHead>
-              <TableHead className="text-gray-600 font-semibold">
                 Email
+              </TableHead>
+              <TableHead className="text-gray-600 font-semibold">
+                Phone
+              </TableHead>
+              <TableHead className="text-gray-600 font-semibold">
+                Address
               </TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
-            {paginatedSuppliers.length > 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-6">
+                  Loading suppliers...
+                </TableCell>
+              </TableRow>
+            ) : paginatedSuppliers.length > 0 ? (
               paginatedSuppliers.map((supplier) => (
                 <TableRow
-                  key={supplier.id}
+                  key={supplier.supplierId}
                   className="cursor-pointer hover:bg-gray-50"
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest('button')) return
@@ -324,14 +305,16 @@ export default function Suppliers() {
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox
-                      checked={selectedSuppliers.includes(supplier.id)}
-                      onCheckedChange={() => toggleSelectSupplier(supplier.id)}
+                      checked={selectedSuppliers.includes(supplier.supplierId)}
+                      onCheckedChange={() =>
+                        toggleSelectSupplier(supplier.supplierId)
+                      }
                     />
                   </TableCell>
                   <TableCell className="font-medium">{supplier.name}</TableCell>
-                  <TableCell>{supplier.contact}</TableCell>
-                  <TableCell>{supplier.phone}</TableCell>
-                  <TableCell>{supplier.email}</TableCell>
+                  <TableCell>{supplier.email || '-'}</TableCell>
+                  <TableCell>{supplier.phone || '-'}</TableCell>
+                  <TableCell>{supplier.address || '-'}</TableCell>
                 </TableRow>
               ))
             ) : (
@@ -340,7 +323,9 @@ export default function Suppliers() {
                   colSpan={5}
                   className="text-center py-6 text-gray-500"
                 >
-                  No suppliers found
+                  {search
+                    ? 'No suppliers found matching your search'
+                    : 'No suppliers found. Add your first supplier!'}
                 </TableCell>
               </TableRow>
             )}
@@ -348,66 +333,71 @@ export default function Suppliers() {
         </Table>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t">
-          <div className="flex items-center gap-6">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="w-10 h-10"
-            >
-              &lt;
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-              }
-              disabled={currentPage === totalPages}
-              className="w-10 h-10"
-            >
-              &gt;
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Page:</span>
-            <Input
-              type="number"
-              value={currentPage}
-              onChange={(e) => {
-                const page = Number.parseInt(e.target.value)
-                if (page >= 1 && page <= totalPages) {
-                  setCurrentPage(page)
+        {filteredSuppliers.length > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t">
+            <div className="flex items-center gap-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="w-10 h-10"
+              >
+                &lt;
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                 }
-              }}
-              className="w-16 h-9 text-center"
-              min={1}
-              max={totalPages}
-            />
-            <span className="text-sm text-gray-600">of {totalPages}</span>
-          </div>
+                disabled={currentPage === totalPages}
+                className="w-10 h-10"
+              >
+                &gt;
+              </Button>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Rows per page:</span>
-            <Select
-              value={rowsPerPage.toString()}
-              onValueChange={(value) => setRowsPerPage(Number.parseInt(value))}
-            >
-              <SelectTrigger className="w-20 h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5">5</SelectItem>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Page:</span>
+              <Input
+                type="number"
+                value={currentPage}
+                onChange={(e) => {
+                  const page = Number.parseInt(e.target.value)
+                  if (page >= 1 && page <= totalPages) {
+                    setCurrentPage(page)
+                  }
+                }}
+                className="w-16 h-9 text-center"
+                min={1}
+                max={totalPages}
+              />
+              <span className="text-sm text-gray-600">of {totalPages}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Rows per page:</span>
+              <Select
+                value={rowsPerPage.toString()}
+                onValueChange={(value) => {
+                  setRowsPerPage(Number.parseInt(value))
+                  setCurrentPage(1)
+                }}
+              >
+                <SelectTrigger className="w-20 h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Add/Edit Supplier Dialog */}
@@ -428,7 +418,7 @@ export default function Suppliers() {
             {/* Supplier name */}
             <div className="space-y-2">
               <Label className="text-gray-500 text-xs">
-                {editingSupplier ? 'Supplier name' : 'Supplier name'}
+                Supplier name <span className="text-red-500">*</span>
               </Label>
               <Input
                 placeholder="Supplier name"
@@ -438,28 +428,13 @@ export default function Suppliers() {
               />
             </div>
 
-            {/* Contact */}
-            <div className="space-y-2">
-              <Label className="text-gray-500 text-xs">Contact</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Contact"
-                  className="pl-9 border-gray-300"
-                  value={form.contact}
-                  onChange={(e) =>
-                    setForm({ ...form, contact: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-
             {/* Email */}
             <div className="space-y-2">
               <Label className="text-gray-500 text-xs">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
+                  type="email"
                   placeholder="Email"
                   className="pl-9 border-gray-300"
                   value={form.email}
@@ -482,47 +457,33 @@ export default function Suppliers() {
               </div>
             </div>
 
-            {/* Website */}
+            {/* Supplier Code */}
             <div className="space-y-2">
-              <Label className="text-gray-500 text-xs">Website</Label>
-              <div className="relative">
-                <Globe className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Website"
-                  className="pl-9 border-gray-300"
-                  value={form.website}
-                  onChange={(e) =>
-                    setForm({ ...form, website: e.target.value })
-                  }
-                />
-              </div>
+              <Label className="text-gray-500 text-xs">Supplier Code</Label>
+              <Input
+                placeholder="Supplier Code"
+                className="border-gray-300"
+                value={form.supplierCode}
+                onChange={(e) =>
+                  setForm({ ...form, supplierCode: e.target.value })
+                }
+              />
             </div>
 
-            {/* Address 1 */}
+            {/* Address */}
             <div className="space-y-2">
-              <Label className="text-gray-500 text-xs">Address 1</Label>
+              <Label className="text-gray-500 text-xs">Address</Label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Address 1"
+                  placeholder="Address"
                   className="pl-9 border-gray-300"
-                  value={form.address1}
+                  value={form.address}
                   onChange={(e) =>
-                    setForm({ ...form, address1: e.target.value })
+                    setForm({ ...form, address: e.target.value })
                   }
                 />
               </div>
-            </div>
-
-            {/* Address 2 */}
-            <div className="space-y-2">
-              <Label className="text-gray-500 text-xs">Address 2</Label>
-              <Input
-                placeholder="Address 2"
-                className="border-gray-300"
-                value={form.address2}
-                onChange={(e) => setForm({ ...form, address2: e.target.value })}
-              />
             </div>
 
             {/* City and Region */}
@@ -595,7 +556,7 @@ export default function Suppliers() {
                   onChange={(e) => setForm({ ...form, note: e.target.value })}
                 />
                 <div className="text-xs text-gray-400 text-right mt-1">
-                  {form.note.length} / 500
+                  {form.note?.length || 0} / 500
                 </div>
               </div>
             </div>
@@ -606,14 +567,22 @@ export default function Suppliers() {
               variant="ghost"
               onClick={() => handleDialogClose(false)}
               className="text-gray-600"
+              disabled={createMutation.isPending || editMutation.isPending}
             >
               CANCEL
             </Button>
             <Button
               onClick={handleSave}
               className="bg-green-500 hover:bg-green-600 text-white"
+              disabled={
+                !form.name.trim() ||
+                createMutation.isPending ||
+                editMutation.isPending
+              }
             >
-              SAVE
+              {createMutation.isPending || editMutation.isPending
+                ? 'SAVING...'
+                : 'SAVE'}
             </Button>
           </DialogFooter>
         </DialogContent>
