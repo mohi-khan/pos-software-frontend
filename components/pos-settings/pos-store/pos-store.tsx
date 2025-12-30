@@ -10,6 +10,7 @@ import {
   useDeleteStore,
 } from '@/hooks/use-stores'
 import { GetStore, CreateStore, UpdateStore } from '@/types/stores'
+import { toast } from '@/hooks/use-toast'
 
 interface FormData {
   name: string
@@ -111,11 +112,25 @@ const PosStore = () => {
 
   const handleDeleteStore = () => {
     if (!editingStore) return
-    if (!window.confirm('Are you sure you want to delete this store?')) return
 
-    deleteStoreMutation.mutate(editingStore.storeId.toString())
-    setIsModalOpen(false)
-    setEditingStore(null)
+    toast({
+      title: 'Delete Store',
+      description:
+        'Are you sure you want to delete this store? This action cannot be undone.',
+      variant: 'destructive',
+      action: (
+        <button
+          className="bg-red-600 text-white px-3 py-1 rounded text-sm"
+          onClick={() => {
+            deleteStoreMutation.mutate(editingStore.storeId.toString())
+            setIsModalOpen(false)
+            setEditingStore(null)
+          }}
+        >
+          Delete
+        </button>
+      ),
+    })
   }
 
   const handleCancel = () => {
@@ -184,80 +199,88 @@ const PosStore = () => {
 
       {/* MODAL */}
       {isModalOpen && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white w-full max-w-md rounded-lg p-6 max-h-[90vh] overflow-y-auto">
-      <div className="flex justify-between mb-4">
-        <h2 className="font-semibold">
-          {editingStore ? 'Edit Store' : 'Add Store'}
-        </h2>
-        <button onClick={handleCancel}>
-          <X />
-        </button>
-      </div>
-
-      {/* FORM */}
-      <div className="space-y-3">
-        {Object.entries(formData).map(([key, value]) =>
-          key !== 'country' ? (
-            <div key={key} className="flex flex-col">
-              <label htmlFor={key} className="text-sm text-gray-600 mb-1 capitalize">
-                {key.replace(/([A-Z])/g, ' $1')}
-              </label>
-              <input
-                id={key}
-                name={key}
-                value={value}
-                onChange={handleInputChange}
-                className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between mb-4">
+              <h2 className="font-semibold">
+                {editingStore ? 'Edit Store' : 'Add Store'}
+              </h2>
+              <button onClick={handleCancel}>
+                <X />
+              </button>
             </div>
-          ) : (
-            <div key={key} className="flex flex-col">
-              <label htmlFor="country" className="text-sm text-gray-600 mb-1">
-                Country
-              </label>
-              <select
-                id="country"
-                name="country"
-                value={value}
-                onChange={handleInputChange}
-                className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option>Bangladesh</option>
-                <option>India</option>
-                <option>Pakistan</option>
-              </select>
-            </div>
-          )
-        )}
-      </div>
 
-      {/* ACTIONS */}
-      <div className="flex justify-between mt-6 items-center">
-        {editingStore && (
-          <button onClick={handleDeleteStore} className="text-red-600 flex items-center gap-1">
-            <Trash2 /> Delete
-          </button>
-        )}
-        <div className="flex gap-3 ml-auto">
-          <button
-            onClick={handleCancel}
-            className="px-4 py-2 border rounded hover:bg-gray-100"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-          >
-            Save
-          </button>
+            {/* FORM */}
+            <div className="space-y-3">
+              {Object.entries(formData).map(([key, value]) =>
+                key !== 'country' ? (
+                  <div key={key} className="flex flex-col">
+                    <label
+                      htmlFor={key}
+                      className="text-sm text-gray-600 mb-1 capitalize"
+                    >
+                      {key.replace(/([A-Z])/g, ' $1')}
+                    </label>
+                    <input
+                      id={key}
+                      name={key}
+                      value={value}
+                      onChange={handleInputChange}
+                      className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                ) : (
+                  <div key={key} className="flex flex-col">
+                    <label
+                      htmlFor="country"
+                      className="text-sm text-gray-600 mb-1"
+                    >
+                      Country
+                    </label>
+                    <select
+                      id="country"
+                      name="country"
+                      value={value}
+                      onChange={handleInputChange}
+                      className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option>Bangladesh</option>
+                      <option>India</option>
+                      <option>Pakistan</option>
+                    </select>
+                  </div>
+                )
+              )}
+            </div>
+
+            {/* ACTIONS */}
+            <div className="flex justify-between mt-6 items-center">
+              {editingStore && (
+                <button
+                  onClick={handleDeleteStore}
+                  className="text-red-600 flex items-center gap-1"
+                >
+                  <Trash2 /> Delete
+                </button>
+              )}
+              <div className="flex gap-3 ml-auto">
+                <button
+                  onClick={handleCancel}
+                  className="px-4 py-2 border rounded hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
-
+      )}
     </div>
   )
 }
