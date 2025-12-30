@@ -102,17 +102,7 @@ export function DashboardSidebar() {
         },
       ],
     },
-    {
-      title: 'Suplier',
-      icon: PilcrowSquare,
-      href: '/dashboard/customers',
-      subItems: [
-        {
-          title: 'Suplier',
-          href: '/suplier/suplier',
-        },
-      ],
-    },
+
     {
       title: 'Inventory Management',
       icon: ShoppingBag,
@@ -120,11 +110,23 @@ export function DashboardSidebar() {
       subItems: [
         {
           title: 'Purchase Orders',
-          href: '/Inventory_management/purchase_orders',
+          href: '/Inventory_management/purchase-orders',
         },
         {
           title: 'Transfer Orders',
           href: '/Inventory_management/transfer-orders',
+        },
+        {
+          title: 'Stock Adjustment',
+          href: '/Inventory_management/stock-adjustment',
+        },
+        {
+          title: 'Productions',
+          href: '/Inventory_management/productions',
+        },
+        {
+          title: 'Suplier',
+          href: '/suplier/suplier',
         },
       ],
     },
