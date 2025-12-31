@@ -11,6 +11,7 @@ import {
   MapPin,
   FileText,
   Truck,
+  X,
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -46,6 +47,7 @@ import {
   useDeleteSupplier,
 } from '@/hooks/use-supplier'
 import { GetSupplier, CreateSupplierPayload } from '@/types/items'
+import Loader from '@/utils/loader'
 
 export default function Suppliers() {
   const [open, setOpen] = useState(false)
@@ -55,6 +57,8 @@ export default function Suppliers() {
   )
   const [selectedSuppliers, setSelectedSuppliers] = useState<number[]>([])
   const [currentPage, setCurrentPage] = useState(1)
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
   const [rowsPerPage, setRowsPerPage] = useState(10)
 
   const [form, setForm] = useState<CreateSupplierPayload>({
@@ -210,13 +214,13 @@ export default function Suppliers() {
   }
 
   return (
-    <div className="p-6 space-y-4 bg-gray-50 min-h-screen">
+    <div className="p-3 sm:p-6 space-y-4 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <Button
             onClick={() => setOpen(true)}
-            className="bg-green-500 hover:bg-green-600 text-white font-semibold"
+            className="bg-green-500 hover:bg-green-600 text-white font-semibold w-full sm:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" />
             ADD SUPPLIER
@@ -226,7 +230,7 @@ export default function Suppliers() {
             <button
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
-              className="flex items-center gap-2 text-gray-700 border border-gray-300 px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
+              className="flex items-center justify-center gap-2 text-gray-700 border border-gray-300 px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50 w-full sm:w-auto"
             >
               <span className="text-xl">🗑</span>
               <span className="font-medium">
@@ -239,26 +243,55 @@ export default function Suppliers() {
         </div>
 
         {/* Search bar */}
-        <div className="relative w-64">
-          <Input
-            placeholder="Search suppliers..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pr-10"
-          />
-          <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 cursor-pointer" />
-        </div>
+        {!showSearch ? (
+          <button
+            onClick={() => setShowSearch(true)}
+            className="p-2.5 border border-gray-300 rounded bg-white hover:bg-gray-50 transition-colors w-full sm:w-auto"
+          >
+            <Search size={18} className="text-gray-600 mx-auto" />
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 sm:flex-none">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search..."
+                className="px-3 py-2 pr-8 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 w-full sm:w-48"
+                autoFocus
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                setShowSearch(false)
+                setSearchTerm('')
+              }}
+              className="p-2.5 border border-gray-300 rounded bg-white hover:bg-gray-50 transition-colors"
+            >
+              <X size={18} className="text-gray-600" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Loading & Error States */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded text-sm">
           Error loading suppliers: {error.message}
         </div>
       )}
 
-      {/* Suppliers Table */}
-      <div className="rounded-md border bg-white shadow-sm">
+      {/* Suppliers Table - Desktop */}
+      <div className="hidden md:block rounded-md border bg-white shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
@@ -290,7 +323,7 @@ export default function Suppliers() {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-6">
-                  Loading suppliers...
+                  <Loader /> 
                 </TableCell>
               </TableRow>
             ) : paginatedSuppliers.length > 0 ? (
@@ -332,7 +365,7 @@ export default function Suppliers() {
           </TableBody>
         </Table>
 
-        {/* Pagination */}
+        {/* Pagination - Desktop */}
         {filteredSuppliers.length > 0 && (
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <div className="flex items-center gap-6">
@@ -400,9 +433,127 @@ export default function Suppliers() {
         )}
       </div>
 
+      {/* Suppliers Cards - Mobile */}
+      <div className="md:hidden space-y-3">
+        {isLoading ? (
+          <div className="bg-white rounded-lg border p-6 text-center text-gray-500">
+            Loading suppliers...
+          </div>
+        ) : paginatedSuppliers.length > 0 ? (
+          paginatedSuppliers.map((supplier) => (
+            <div
+              key={supplier.supplierId}
+              className="bg-white rounded-lg border p-4 space-y-3"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3 flex-1">
+                  <Checkbox
+                    checked={selectedSuppliers.includes(supplier.supplierId)}
+                    onCheckedChange={() =>
+                      toggleSelectSupplier(supplier.supplierId)
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 truncate">
+                      {supplier.name}
+                    </h3>
+                    {supplier.email && (
+                      <p className="text-sm text-gray-600 truncate mt-1">
+                        {supplier.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                {supplier.phone && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Phone className="h-4 w-4 flex-shrink-0" />
+                    <span>{supplier.phone}</span>
+                  </div>
+                )}
+                {supplier.address && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    <span className="line-clamp-2">{supplier.address}</span>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => handleEdit(supplier)}
+                className="w-full py-2 text-sm font-medium text-green-600 border border-green-600 rounded hover:bg-green-50 transition-colors"
+              >
+                View Details
+              </button>
+            </div>
+          ))
+        ) : (
+          <div className="bg-white rounded-lg border p-6 text-center text-gray-500">
+            {search
+              ? 'No suppliers found matching your search'
+              : 'No suppliers found. Add your first supplier!'}
+          </div>
+        )}
+
+        {/* Pagination - Mobile */}
+        {filteredSuppliers.length > 0 && (
+          <div className="bg-white rounded-lg border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="flex-1"
+              >
+                Previous
+              </Button>
+              <span className="px-4 text-sm text-gray-600">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
+                disabled={currentPage === totalPages}
+                className="flex-1"
+              >
+                Next
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 whitespace-nowrap">Rows per page:</span>
+              <Select
+                value={rowsPerPage.toString()}
+                onValueChange={(value) => {
+                  setRowsPerPage(Number.parseInt(value))
+                  setCurrentPage(1)
+                }}
+              >
+                <SelectTrigger className="flex-1 h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Add/Edit Supplier Dialog */}
       <Dialog open={open} onOpenChange={handleDialogClose}>
-        <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] mx-auto">
           <DialogHeader>
             <DialogTitle className="sr-only">
               {editingSupplier ? 'Edit Supplier' : 'Add Supplier'}
@@ -562,18 +713,18 @@ export default function Suppliers() {
             </div>
           </div>
 
-          <DialogFooter className="mt-4 gap-2">
+          <DialogFooter className="mt-4 gap-2 flex-col sm:flex-row">
             <Button
               variant="ghost"
               onClick={() => handleDialogClose(false)}
-              className="text-gray-600"
+              className="text-gray-600 w-full sm:w-auto"
               disabled={createMutation.isPending || editMutation.isPending}
             >
               CANCEL
             </Button>
             <Button
               onClick={handleSave}
-              className="bg-green-500 hover:bg-green-600 text-white"
+              className="bg-green-500 hover:bg-green-600 text-white w-full sm:w-auto"
               disabled={
                 !form.name.trim() ||
                 createMutation.isPending ||
@@ -590,3 +741,5 @@ export default function Suppliers() {
     </div>
   )
 }
+
+
