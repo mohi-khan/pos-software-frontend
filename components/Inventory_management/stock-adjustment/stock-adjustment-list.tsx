@@ -37,7 +37,8 @@ const StockAdjustmentList: React.FC<StockAdjustmentListProps> = ({
   const [reasonFilter, setReasonFilter] = useState('All reasons');
   const [storeFilter, setStoreFilter] = useState('All stores');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSearchBar, setShowSearchBar] = useState(false);
+ const [showSearch, setShowSearch] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -91,7 +92,7 @@ const StockAdjustmentList: React.FC<StockAdjustmentListProps> = ({
           </div>
         </div>
 
-        {showSearchBar ? (
+        {/* {showSearchBar ? (
           <div className="relative w-full md:w-auto">
             <input
               type="text"
@@ -119,6 +120,44 @@ const StockAdjustmentList: React.FC<StockAdjustmentListProps> = ({
           >
             <Search size={20} />
           </button>
+        )} */}
+        {!showSearch ? (
+          <button
+            onClick={() => setShowSearch(true)}
+            className="p-2.5 border border-gray-300 rounded bg-white hover:bg-gray-50 transition-colors w-full sm:w-auto"
+          >
+            <Search size={18} className="text-gray-600 mx-auto" />
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 sm:flex-none">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search..."
+                className="px-3 py-2 pr-8 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 w-full sm:w-48"
+                autoFocus
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                setShowSearch(false)
+                setSearchTerm('')
+              }}
+              className="p-2.5 border border-gray-300 rounded bg-white hover:bg-gray-50 transition-colors"
+            >
+              <X size={18} className="text-gray-600" />
+            </button>
+          </div>
         )}
       </div>
 

@@ -10,16 +10,10 @@ import {
   Users,
   Menu,
   X,
-  BarChart3,
-  ShoppingCart,
-  FileText,
-  Settings,
   User2,
   LogOut,
   KeyRound,
   ShoppingBag,
-  PilcrowSquare,
-  Settings2,
   SettingsIcon,
 } from 'lucide-react'
 import { useInitializeUser, userDataAtom } from '@/utils/user'
@@ -126,7 +120,11 @@ export function DashboardSidebar() {
         },
         {
           title: 'Suplier',
-          href: '/suplier/suplier',
+          href: '/Inventory_management/suplier',
+        },
+        {
+          title: 'Inventory History',
+          href: '/Inventory_management/inventory-history',
         },
       ],
     },
