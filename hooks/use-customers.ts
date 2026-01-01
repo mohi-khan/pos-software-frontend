@@ -5,13 +5,14 @@ import { useAtom } from 'jotai'
 import { tokenAtom, useInitializeUser } from '@/utils/user'
 import { toast } from './use-toast'
 
-import { GetCustomer, CreateCustomer, UpdateCustomer } from '@/types/items'
+
 import {
   getCustomers,
   createCustomer,
   editCustomer,
   deleteCustomer,
 } from '@/api/customers-api'
+import { CreateCustomer, GetCustomer, UpdateCustomer } from '@/types/customer'
 
 /* =========================
    GET ALL CUSTOMERS
@@ -117,19 +118,10 @@ export const useEditCustomer = ({
       if (!token) throw new Error('Token not found')
 
       // 🔹 Get cached customers
-      const customers =
+    
         queryClient.getQueryData<GetCustomer[]>(['customers'])
 
-      // 🔹 Check duplicate email (ignore same customer)
-      if (data.email) {
-        const isDuplicate = customers?.some(
-          (cus) => cus.email.toLowerCase() === data.email!.toLowerCase()
-        )
-
-        if (isDuplicate) {
-          throw new Error('Customer email already exists')
-        }
-      }
+     
 
       return editCustomer(id, data, token)
     },

@@ -1,4 +1,4 @@
-import { CreateSupplierPayload, GetSupplier, UpdateSupplierPayload } from '@/types/items'
+import { CreateSupplierPayload, GetSupplier, UpdateSupplierPayload } from '@/types/supplier'
 import { fetchApi } from '@/utils/http'
 
 // Get all suppliers

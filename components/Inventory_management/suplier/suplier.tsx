@@ -46,7 +46,7 @@ import {
   useEditSupplier,
   useDeleteSupplier,
 } from '@/hooks/use-supplier'
-import { GetSupplier, CreateSupplierPayload } from '@/types/items'
+import { GetSupplier, CreateSupplierPayload } from '@/types/supplier'
 import Loader from '@/utils/loader'
 
 export default function Suppliers() {
@@ -58,7 +58,6 @@ export default function Suppliers() {
   const [selectedSuppliers, setSelectedSuppliers] = useState<number[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [showSearch, setShowSearch] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
   const [rowsPerPage, setRowsPerPage] = useState(10)
 
   const [form, setForm] = useState<CreateSupplierPayload>({
@@ -255,15 +254,15 @@ export default function Suppliers() {
             <div className="relative flex-1 sm:flex-none">
               <input
                 type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search..."
                 className="px-3 py-2 pr-8 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 w-full sm:w-48"
                 autoFocus
               />
-              {searchTerm && (
+              {search && (
                 <button
-                  onClick={() => setSearchTerm('')}
+                  onClick={() => setSearch('')}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X size={16} />
@@ -273,7 +272,7 @@ export default function Suppliers() {
             <button
               onClick={() => {
                 setShowSearch(false)
-                setSearchTerm('')
+                setSearch('')
               }}
               className="p-2.5 border border-gray-300 rounded bg-white hover:bg-gray-50 transition-colors"
             >
@@ -323,7 +322,7 @@ export default function Suppliers() {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-6">
-                  <Loader /> 
+                  <Loader />
                 </TableCell>
               </TableRow>
             ) : paginatedSuppliers.length > 0 ? (
@@ -528,7 +527,9 @@ export default function Suppliers() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 whitespace-nowrap">Rows per page:</span>
+              <span className="text-sm text-gray-600 whitespace-nowrap">
+                Rows per page:
+              </span>
               <Select
                 value={rowsPerPage.toString()}
                 onValueChange={(value) => {
@@ -741,5 +742,3 @@ export default function Suppliers() {
     </div>
   )
 }
-
-
