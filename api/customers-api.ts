@@ -1,5 +1,6 @@
 
-import { CreateCustomer, GetCustomer, UpdateCustomer } from '@/types/items'
+
+import { CreateCustomer, GetCustomer, UpdateCustomer } from '@/types/customer'
 import { fetchApi } from '@/utils/http'
 
 // Get all customers

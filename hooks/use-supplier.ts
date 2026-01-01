@@ -9,7 +9,7 @@ import {
   GetSupplier,
   CreateSupplierPayload,
   UpdateSupplierPayload,
-} from '@/types/items'
+} from '@/types/supplier'
 import { createSupplier, deleteSupplier, editSupplier, getSuppliers } from '@/api/supplier-api'
 
 
