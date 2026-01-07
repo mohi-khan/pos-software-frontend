@@ -1,3 +1,6 @@
+
+
+
 'use client'
 import React, { useState, useEffect } from 'react'
 import {
@@ -791,7 +794,7 @@ const InventoryManagement: React.FC = () => {
           <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">
-                {currentItem ? 'Edit Item' : 'Add New Item'}
+                {currentItem ? 'Edit Item' : 'New Item'}
               </h2>
               <button
                 onClick={closeModal}
@@ -801,40 +804,101 @@ const InventoryManagement: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">
-                  Sold by
-                </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      checked={formData.soldBy === 'Each'}
-                      onChange={() =>
-                        setFormData({ ...formData, soldBy: 'Each' })
-                      }
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm">Each</span>
+            <div className="p-6 space-y-5">
+              {/* Name and Category Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1.5">
+                    Name
                   </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      checked={formData.soldBy === 'Weight/Volume'}
-                      onChange={() =>
-                        setFormData({ ...formData, soldBy: 'Weight/Volume' })
-                      }
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm">Weight/Volume</span>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    placeholder="new items"
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1.5">
+                    Category
                   </label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) =>
+                      setFormData({ ...formData, category: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option>No category</option>
+                    {uniqueCategories.map((cat) => (
+                      <option key={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
+              {/* Description */}
+              <div>
+                <label className="block text-sm text-gray-700 mb-1.5">
+                  Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  placeholder="new idea"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                  rows={3}
+                />
+              </div>
+
+              {/* Subtitle and Switches */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-700">Subtitle</span>
+                  <label className="relative inline-block w-11 h-6">
+                    <input
+                      type="checkbox"
+                      checked={formData.availableForSale}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          availableForSale: e.target.checked,
+                        })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-full h-full bg-gray-200 peer-checked:bg-green-500 rounded-full transition-colors"></div>
+                    <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full peer-checked:left-6 transition-all"></div>
+                  </label>
+                  <span className="text-sm text-gray-700">track</span>
+                  <label className="relative inline-block w-11 h-6">
+                    <input
+                      type="checkbox"
+                      checked={formData.trackStock}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          trackStock: e.target.checked,
+                        })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-full h-full bg-gray-200 peer-checked:bg-green-500 rounded-full transition-colors"></div>
+                    <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full peer-checked:left-6 transition-all"></div>
+                  </label>
+                  <span className="text-sm text-gray-700">Weight/Volume</span>
+                </div>
+              </div>
+
+              {/* Price and Cost */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">
+                  <label className="block text-sm text-gray-700 mb-1.5">
                     Price
                   </label>
                   <input
@@ -843,12 +907,15 @@ const InventoryManagement: React.FC = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, price: e.target.value })
                     }
-                    placeholder="0.00"
-                    className="w-full border rounded px-3 py-2 text-sm"
+                    placeholder="Tk 1,000.00"
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    To check the price per count, price must have from fixed cost
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">
+                  <label className="block text-sm text-gray-700 mb-1.5">
                     Cost
                   </label>
                   <input
@@ -857,50 +924,38 @@ const InventoryManagement: React.FC = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, cost: e.target.value })
                     }
-                    placeholder="0.00"
-                    className="w-full border rounded px-3 py-2"
+                    placeholder="Tk 1,000.00"
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">
-                    SKU
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.sku}
-                    onChange={(e) =>
-                      setFormData({ ...formData, sku: e.target.value })
-                    }
-                    className="w-full border rounded px-3 py-2"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Unique identifier assigned to an item
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">
-                    Barcode
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.barcode}
-                    onChange={(e) =>
-                      setFormData({ ...formData, barcode: e.target.value })
-                    }
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-              </div>
-
+              {/* SKU */}
               <div>
-                <h3 className="font-medium mb-3">Inventory</h3>
+                <label className="block text-sm text-gray-700 mb-1.5">
+                  SKU
+                </label>
+                <input
+                  type="text"
+                  value={formData.sku}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sku: e.target.value })
+                  }
+                  placeholder="new items-1700"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Unique identifier assigned to an item
+                </p>
+              </div>
+
+              {/* Inventory Section */}
+              <div>
+                <h3 className="font-semibold mb-3 text-base">Inventory</h3>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between py-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm">Composite item</span>
+                      <span className="text-sm text-gray-700">Composite item</span>
                       <span className="text-gray-400 text-xs">ⓘ</span>
                     </div>
                     <label className="relative inline-block w-11 h-6">
@@ -922,142 +977,157 @@ const InventoryManagement: React.FC = () => {
 
                   {formData.compositeItem && (
                     <div className="border rounded-lg p-4 bg-gray-50">
-                      <div className="grid grid-cols-3 gap-2 mb-2 text-sm text-gray-600">
-                        <div>Component</div>
-                        <div>Quantity</div>
-                        <div>Cost</div>
-                      </div>
-                      {formData.components.map((comp, idx) => (
-                        <div key={idx} className="grid grid-cols-3 gap-2 mb-2">
-                          <input
-                            type="text"
-                            placeholder="Item search"
-                            value={comp.name}
-                            onChange={(e) =>
-                              updateComponent(idx, 'name', e.target.value)
-                            }
-                            className="border rounded px-2 py-1 text-sm"
-                          />
-                          <input
-                            type="text"
-                            value={comp.quantity}
-                            onChange={(e) =>
-                              updateComponent(idx, 'quantity', e.target.value)
-                            }
-                            className="border rounded px-2 py-1 text-sm"
-                          />
-                          <div className="flex gap-1">
+                      <div className="space-y-3 mb-3">
+                        <div className="text-xs text-gray-600 font-medium mb-2">
+                          COMPONENT • QUANTITY • COST
+                        </div>
+                        {formData.components.map((comp, idx) => (
+                          <div key={idx} className="flex gap-2 items-center">
                             <input
                               type="text"
+                              placeholder="new items"
+                              value={comp.name}
+                              onChange={(e) =>
+                                updateComponent(idx, 'name', e.target.value)
+                              }
+                              className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
+                            />
+                            <input
+                              type="text"
+                              placeholder="1,000"
+                              value={comp.quantity}
+                              onChange={(e) =>
+                                updateComponent(idx, 'quantity', e.target.value)
+                              }
+                              className="w-20 border border-gray-300 rounded px-3 py-2 text-sm"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Tk657.00"
                               value={comp.cost}
                               onChange={(e) =>
                                 updateComponent(idx, 'cost', e.target.value)
                               }
-                              className="border rounded px-2 py-1 text-sm flex-1"
+                              className="w-28 border border-gray-300 rounded px-3 py-2 text-sm"
                             />
                             <button
                               onClick={() => removeComponent(idx)}
-                              className="p-1 text-red-500 hover:bg-red-50 rounded"
+                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
                             >
-                              <X size={16} />
+                              <Trash2 size={16} />
                             </button>
                           </div>
+                        ))}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="fixed type"
+                            className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
+                          />
+                          <input
+                            type="text"
+                            placeholder="1,000"
+                            className="w-20 border border-gray-300 rounded px-3 py-2 text-sm"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Tk657.00"
+                            className="w-28 border border-gray-300 rounded px-3 py-2 text-sm"
+                          />
+                          <button className="p-2 text-gray-400">
+                            <Trash2 size={16} />
+                          </button>
                         </div>
-                      ))}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="item search"
+                            className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
+                          />
+                          <div className="w-20"></div>
+                          <div className="w-28"></div>
+                          <div className="w-8"></div>
+                        </div>
+                      </div>
                       <button
                         onClick={addComponent}
                         className="text-green-600 text-sm flex items-center gap-1 hover:text-green-700 mb-3"
                       >
                         <Plus size={16} /> Add component
                       </button>
-                      <div className="text-right text-sm font-medium">
-                        Total cost: {getTotalCost()}
+                      <div className="text-right text-sm font-semibold border-t pt-3">
+                        Total cost: Tk{getTotalCost()}
                       </div>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Track stock</span>
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700">User production</span>
+                      <span className="text-gray-400 text-xs">ⓘ</span>
+                    </div>
                     <label className="relative inline-block w-11 h-6">
                       <input
                         type="checkbox"
-                        checked={formData.trackStock}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            trackStock: e.target.checked,
-                          })
-                        }
                         className="sr-only peer"
                       />
                       <div className="w-full h-full bg-gray-200 peer-checked:bg-green-500 rounded-full transition-colors"></div>
                       <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full peer-checked:left-6 transition-all"></div>
                     </label>
                   </div>
-
-                  {formData.trackStock && (
-                    <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">
-                          In stock
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.inStock}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              inStock: e.target.value,
-                            })
-                          }
-                          className="w-full border rounded px-3 py-2"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">
-                          Low stock
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Item quantity at which you will be notified about low stock"
-                          value={formData.lowStock}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              lowStock: e.target.value,
-                            })
-                          }
-                          className="w-full border rounded px-3 py-2 text-sm"
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 
+              {/* Stores Section */}
               <div>
-                <h3 className="font-medium mb-2">Variants</h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Use variants if an item has different sizes, colors or other
-                  options
-                </p>
-                <button
-                  onClick={openVariantModal}
-                  className="text-green-600 text-sm flex items-center gap-1 hover:text-green-700"
-                >
-                  <Plus size={16} /> ADD VARIANTS
-                </button>
+                <h3 className="font-semibold mb-3 text-base">Stores</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-blue-50 border-b border-blue-100 p-3 flex items-center gap-2">
+                    <input type="checkbox" className="w-4 h-4" defaultChecked />
+                    <span className="text-sm text-blue-900">
+                      This item is available for sale at all stores
+                    </span>
+                  </div>
+                  <div className="divide-y">
+                    <div className="grid grid-cols-5 gap-3 p-3 bg-gray-50 text-xs text-gray-600 font-medium">
+                      <div>AVAILABLE</div>
+                      <div>NAME</div>
+                      <div>PRICE</div>
+                      <div>IN STOCK</div>
+                      <div>LOW STOCK</div>
+                    </div>
+                    <div className="grid grid-cols-5 gap-3 p-3 items-center">
+                      <div>
+                        <input type="checkbox" className="w-4 h-4 text-green-500" defaultChecked />
+                      </div>
+                      <div className="text-sm">toolbar</div>
+                      <div className="text-sm">Tk1,000.00</div>
+                      <div className="text-sm">5</div>
+                      <div className="text-sm">1</div>
+                    </div>
+                    <div className="grid grid-cols-5 gap-3 p-3 items-center bg-green-50">
+                      <div>
+                        <input type="checkbox" className="w-4 h-4 text-green-500" defaultChecked />
+                      </div>
+                      <div className="text-sm font-medium">New toolbar</div>
+                      <div className="text-sm">Tk1,000.00</div>
+                      <div className="text-sm">3</div>
+                      <div className="text-sm">1</div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
+              {/* Representation on POS */}
               <div>
-                <h3 className="font-medium mb-3">Representation on POS</h3>
+                <h3 className="font-semibold mb-3 text-base">Representation on POS</h3>
                 <div className="flex gap-4 mb-3">
                   <label className="flex items-center gap-2">
-                    <input type="radio" checked readOnly className="w-4 h-4" />
+                    <input type="radio" defaultChecked className="w-4 h-4" />
                     <span className="text-sm">Color and shape</span>
                   </label>
                   <label className="flex items-center gap-2">
-                    <input type="radio" readOnly className="w-4 h-4" />
+                    <input type="radio" className="w-4 h-4" />
                     <span className="text-sm">Image</span>
                   </label>
                 </div>
@@ -1107,15 +1177,15 @@ const InventoryManagement: React.FC = () => {
             <div className="sticky bottom-0 bg-white border-t p-4 flex justify-end gap-3">
               <button
                 onClick={closeModal}
-                className="px-4 py-2 border rounded hover:bg-gray-50"
+                className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50 text-gray-700 font-medium"
               >
                 CANCEL
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                className="px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600 font-medium"
               >
-                SAVE
+                Save
               </button>
             </div>
           </div>
@@ -1230,3 +1300,4 @@ const InventoryManagement: React.FC = () => {
 }
 
 export default InventoryManagement
+
