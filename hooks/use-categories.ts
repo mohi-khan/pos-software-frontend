@@ -103,19 +103,6 @@ export const useEditCategory = ({
     mutationFn: async ({ id, data }: { id: string; data: UpdateCategory }) => {
       if (!token) throw new Error('Token not found')
 
-      // 🔹 Get cached categories
-      const categories = queryClient.getQueryData<GetCategory[]>(['categories'])
-
-      // 🔹 Check duplicate name except current category
-      const isDuplicate = categories?.some(
-        (cat) =>
-          cat.name.trim().toLowerCase() === data.name.trim().toLowerCase()
-      )
-
-      if (isDuplicate) {
-        throw new Error('Category name already exists')
-      }
-
       return editCategory(id, data, token)
     },
 
