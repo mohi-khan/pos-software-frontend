@@ -1,8 +1,5 @@
-
-
-
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -11,6 +8,9 @@ import {
   X,
   Trash2,
 } from 'lucide-react'
+import { useItems } from '@/hooks/use-items'
+import { useCategories } from '@/hooks/use-categories'
+import { GetItem } from '@/types/items'
 
 interface Variant {
   name: string
@@ -49,6 +49,10 @@ interface Item {
 }
 
 const InventoryManagement: React.FC = () => {
+  const {data: item } = useItems();
+  console.log("this is items data", item)
+const { data: categoriesData, isLoading, error } = useCategories()
+
   const [items, setItems] = useState<Item[]>([
     {
       itemId: 1,
@@ -81,6 +85,7 @@ const InventoryManagement: React.FC = () => {
       expanded: false,
     },
   ])
+  console.log("demo data: ", items)
 
   const [showModal, setShowModal] = useState(false)
   const [showVariantModal, setShowVariantModal] = useState(false)
@@ -123,7 +128,7 @@ const InventoryManagement: React.FC = () => {
   ]
   const shapes = ['check', 'circle', 'dashed-circle', 'hexagon']
 
-  const uniqueCategories = ['Electronics', 'Furniture', 'Office Supplies']
+  // const uniqueCategories = ['Electronics', 'Furniture', 'Office Supplies']
 
   const filteredItems = items.filter((item) => {
     const matchesSearch = item.name
@@ -147,7 +152,7 @@ const InventoryManagement: React.FC = () => {
   }
 
   const deleteSelectedItems = () => {
-    setItems(items.filter((item) => !selectedItems.has(item.itemId)))
+ items.filter((item) => !selectedItems.has(item.itemId))
     setSelectedItems(new Set())
   }
 
@@ -461,8 +466,8 @@ const InventoryManagement: React.FC = () => {
                     className="border rounded px-2 py-2 text-sm bg-white flex-1"
                   >
                     <option>All items</option>
-                    {uniqueCategories.map((cat) => (
-                      <option key={cat}>{cat}</option>
+                    {categoriesData?.map((cat, categoryId) => (
+                      <option key={categoryId}>{cat.name}</option>
                     ))}
                   </select>
 
@@ -525,8 +530,8 @@ const InventoryManagement: React.FC = () => {
                   className="border rounded px-3 py-1.5 text-sm bg-white min-w-[150px]"
                 >
                   <option>All items</option>
-                  {uniqueCategories.map((cat) => (
-                    <option key={cat}>{cat}</option>
+                  {categoriesData?.map((category, categoryId ) => (
+                    <option key={categoryId}>{category.name}</option>
                   ))}
                 </select>
               </div>
@@ -539,6 +544,8 @@ const InventoryManagement: React.FC = () => {
                   className="border rounded px-3 py-1.5 text-sm bg-white min-w-[150px]"
                 >
                   <option>All items</option>
+                  <option >Low stock</option>
+                  <option>Out stock</option>
                 </select>
               </div>
 
@@ -629,16 +636,16 @@ const InventoryManagement: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              filteredItems.map((item) => (
-                <React.Fragment key={item.itemId}>
+              item?.map((items:GetItem) => (
+                <React.Fragment key={items.itemId}>
                   <tr className="border-b hover:bg-gray-50">
                     <td className="p-4">
-                      {item.variantSku && item.variantSku.length > 0 && (
+                      {items.variantSku && items.variantSku.length > 0 && (
                         <button
-                          onClick={() => toggleExpand(item.itemId)}
+                          onClick={() => toggleExpand(items.itemId)}
                           className="p-1"
                         >
-                          {item.expanded ? (
+                          {items.expanded ? (
                             <ChevronDown size={18} />
                           ) : (
                             <ChevronRight size={18} />
@@ -650,48 +657,31 @@ const InventoryManagement: React.FC = () => {
                       <input
                         type="checkbox"
                         className="w-4 h-4 mr-3 inline-block"
-                        checked={selectedItems.has(item.itemId)}
-                        onChange={() => toggleItemSelection(item.itemId)}
+                        checked={selectedItems.has(items.itemId)}
+                        onChange={() => toggleItemSelection(items.itemId)}
                       />
                       <button
-                        onClick={() => openModal(item)}
+                        onClick={() => openModal(items)}
                         className="text-blue-600 hover:underline"
                       >
-                        {item.name}
+                        {items.name}
                       </button>
                     </td>
                     <td className="p-4 text-gray-700">
-                      {item.categoryName || '-'}
+                      {items.categoryName || '-'}
                     </td>
                     <td className="p-4 text-gray-700">
-                      {item.price ? `Tk${item.price}` : '-'}
+                      {items.price ? `Tk${items.price}` : '-'}
                     </td>
                     <td className="p-4 text-gray-700">
-                      {item.cost ? `Tk${item.cost}` : '-'}
+                      {items.cost ? `Tk${items.cost}` : '-'}
                     </td>
-                    <td className="p-4 text-gray-700">{item.margin || '-'}</td>
+                    <td className="p-4 text-gray-700">{items.margin || '-'}</td>
                     <td className="p-4 text-gray-700">
-                      {item.inStock?.toLocaleString() || 0}
+                      {items.inStock?.toLocaleString() || 0}
                     </td>
                   </tr>
-                  {item.expanded &&
-                    Array.isArray(item.variantSku) &&
-                    item.variantSku.map((sku: Item, idx: number) => (
-                      <tr
-                        key={`${item.itemId}-v-${idx}`}
-                        className="border-b hover:bg-gray-50 bg-gray-50"
-                      >
-                        <td className="p-4"></td>
-                        <td className="p-4 pl-12 text-gray-600">{sku.name}</td>
-                        <td className="p-4"></td>
-                        <td className="p-4 text-gray-700">{sku.price}</td>
-                        <td className="p-4 text-gray-700">{sku.cost}</td>
-                        <td className="p-4 text-gray-700">{sku.margin}</td>
-                        <td className="p-4 text-gray-700">
-                          {sku.inStock?.toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
+                  
                 </React.Fragment>
               ))
             )}
@@ -833,8 +823,8 @@ const InventoryManagement: React.FC = () => {
                     className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
                     <option>No category</option>
-                    {uniqueCategories.map((cat) => (
-                      <option key={cat}>{cat}</option>
+                    {categoriesData?.map((cat, categoryId) => (
+                      <option key={categoryId}>{cat.name}</option>
                     ))}
                   </select>
                 </div>
@@ -911,7 +901,8 @@ const InventoryManagement: React.FC = () => {
                     className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    To check the price per count, price must have from fixed cost
+                    To check the price per count, price must have from fixed
+                    cost
                   </p>
                 </div>
                 <div>
@@ -955,7 +946,9 @@ const InventoryManagement: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between py-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-700">Composite item</span>
+                      <span className="text-sm text-gray-700">
+                        Composite item
+                      </span>
                       <span className="text-gray-400 text-xs">ⓘ</span>
                     </div>
                     <label className="relative inline-block w-11 h-6">
@@ -1063,14 +1056,13 @@ const InventoryManagement: React.FC = () => {
 
                   <div className="flex items-center justify-between py-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-700">User production</span>
+                      <span className="text-sm text-gray-700">
+                        User production
+                      </span>
                       <span className="text-gray-400 text-xs">ⓘ</span>
                     </div>
                     <label className="relative inline-block w-11 h-6">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                      />
+                      <input type="checkbox" className="sr-only peer" />
                       <div className="w-full h-full bg-gray-200 peer-checked:bg-green-500 rounded-full transition-colors"></div>
                       <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full peer-checked:left-6 transition-all"></div>
                     </label>
@@ -1098,7 +1090,11 @@ const InventoryManagement: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-5 gap-3 p-3 items-center">
                       <div>
-                        <input type="checkbox" className="w-4 h-4 text-green-500" defaultChecked />
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-green-500"
+                          defaultChecked
+                        />
                       </div>
                       <div className="text-sm">toolbar</div>
                       <div className="text-sm">Tk1,000.00</div>
@@ -1107,7 +1103,11 @@ const InventoryManagement: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-5 gap-3 p-3 items-center bg-green-50">
                       <div>
-                        <input type="checkbox" className="w-4 h-4 text-green-500" defaultChecked />
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-green-500"
+                          defaultChecked
+                        />
                       </div>
                       <div className="text-sm font-medium">New toolbar</div>
                       <div className="text-sm">Tk1,000.00</div>
@@ -1120,7 +1120,9 @@ const InventoryManagement: React.FC = () => {
 
               {/* Representation on POS */}
               <div>
-                <h3 className="font-semibold mb-3 text-base">Representation on POS</h3>
+                <h3 className="font-semibold mb-3 text-base">
+                  Representation on POS
+                </h3>
                 <div className="flex gap-4 mb-3">
                   <label className="flex items-center gap-2">
                     <input type="radio" defaultChecked className="w-4 h-4" />
@@ -1300,4 +1302,3 @@ const InventoryManagement: React.FC = () => {
 }
 
 export default InventoryManagement
-

@@ -3,6 +3,7 @@ export type GetCategory = {
   categoryId: number
   name: string
   color: string
+  totalInStock?: string
   createdAt: string // ISO date string
   updatedAt: string // ISO date string
 }

@@ -98,7 +98,8 @@ export const useCreatePurchaseOrder = ({
       ])
       const isDuplicate = orders?.some(
         (order) =>
-          order.orderNumber.toLowerCase() === data.order.orderNumber.toLowerCase()
+          order.orderNumber.toLowerCase() ===
+          data.order.orderNumber.toLowerCase()
       )
 
       if (isDuplicate) {
@@ -154,23 +155,7 @@ export const useUpdatePurchaseOrder = ({
     }) => {
       if (!token) throw new Error('Token not found')
 
-      const orders = queryClient.getQueryData<GetPurchaseOrder[]>([
-        'purchaseOrders',
-      ])
-
       // Check duplicate order number ignoring current order
-      if (data.order?.orderNumber) {
-        const isDuplicate = orders?.some(
-          (order) =>
-            order.purchaseOrderId?.toString() !== id &&
-            order.orderNumber.toLowerCase() ===
-              data.order?.orderNumber?.toLowerCase()
-        )
-
-        if (isDuplicate) {
-          throw new Error('Order number already exists')
-        }
-      }
 
       // Validate items array if provided
       if (data.items && data.items.length === 0) {
@@ -182,7 +167,9 @@ export const useUpdatePurchaseOrder = ({
 
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] })
-      queryClient.invalidateQueries({ queryKey: ['purchaseOrder', variables.id] })
+      queryClient.invalidateQueries({
+        queryKey: ['purchaseOrder', variables.id],
+      })
       onClose()
       reset()
       toast({ title: 'Purchase order updated successfully' })

@@ -13,10 +13,12 @@ type Category = {
   id?: string
   name: string
   color: string
+  totalInStock?:string
 }
 
 const Categories: React.FC = () => {
   const { data: categoriesData, isLoading, error } = useCategories()
+  console.log("categories data: ", categoriesData)
   const [categories, setCategories] = useState<Category[]>([])
   const [open, setOpen] = useState<boolean>(false)
   const [name, setName] = useState<string>('')
@@ -64,6 +66,8 @@ const Categories: React.FC = () => {
           id: c.categoryId.toString(),
           name: c.name,
           color: c.color || '#2196F3',
+             totalInStock: c.totalInStock, // ✅ ADD THIS
+
         }))
       )
     }
@@ -222,7 +226,7 @@ const Categories: React.FC = () => {
                 />
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-xs md:text-sm truncate">{cat.name}</p>
-                  <p className="text-xs text-gray-500">0 items</p>
+                  <p className="text-xs text-gray-500">{cat.totalInStock} items</p>
                 </div>
               </div>
             </div>
