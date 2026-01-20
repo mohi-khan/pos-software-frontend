@@ -28,9 +28,10 @@ export type GetItem = {
 
   // Variant-related fields
   variantName: string | null
+  variantSku?: string | null  // Changed from Item[]
   optionName: string | null
   optionValue: string | null
-  variantSku: string | null
+
   variantInStock: number | null
 
   // Composite items (future use)

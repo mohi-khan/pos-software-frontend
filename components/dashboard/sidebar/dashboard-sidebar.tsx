@@ -19,6 +19,7 @@ import {
 import { useInitializeUser, userDataAtom } from '@/utils/user'
 import { useAtom } from 'jotai'
 import { se } from 'date-fns/locale'
+import { title } from 'process'
 
 export function DashboardSidebar() {
   useInitializeUser()
@@ -105,6 +106,10 @@ export function DashboardSidebar() {
         {
           title: 'Purchase Orders',
           href: '/Inventory_management/purchase-orders',
+        },
+        {
+          title: 'Sales',
+          href: '/Inventory_management/sales',
         },
         {
           title: 'Transfer Orders',
