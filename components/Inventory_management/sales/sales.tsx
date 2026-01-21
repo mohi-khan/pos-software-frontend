@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import {
   Search,
   Plus,
@@ -10,10 +10,25 @@ import {
   ShoppingCart,
   DollarSign,
   Package,
-  Calendar,
-  User,
+  Camera,
+  CameraOff,
 } from 'lucide-react'
-import { useSales } from '@/hooks/use.sales'
+import {
+  useSales,
+  useCreateSale,
+  useEditSale,
+  useDeleteSale,
+} from '@/hooks/use.sales'
+import { useCustomers } from '@/hooks/use-customers'
+import { useItems } from '@/hooks/use-items'
+import { CreateSaleRequest, UpdateSaleRequest } from '@/types/sales'
+
+// Load html5-qrcode library
+declare global {
+  interface Window {
+    Html5Qrcode: any
+  }
+}
 
 // Component types based on API response
 interface SaleItem {
@@ -42,14 +57,55 @@ interface FormData {
 }
 
 export default function SalesManagement() {
-  const { data: salesData } = useSales()
+  const { data: salesData, isLoading: salesLoading } = useSales()
+  const { data: customer } = useCustomers()
+  const { data: itemproduct } = useItems()
+
+  const [showModal, setShowModal] = useState(false)
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
+  const [showScanner, setShowScanner] = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const scannerRef = useRef<any>(null)
+  const [scannerLoaded, setScannerLoaded] = useState(false)
+
+  const [formData, setFormData] = useState<FormData>({
+    customerId: '',
+    saleDate: new Date().toISOString().split('T')[0],
+    status: 'completed',
+    items: [],
+  })
+
+  // Reset form helper
+  const resetForm = () => {
+    setFormData({
+      customerId: '',
+      saleDate: new Date().toISOString().split('T')[0],
+      status: 'completed',
+      items: [],
+    })
+    setSelectedSale(null)
+  }
+
+  // Initialize mutation hooks
+  const createMutation = useCreateSale({
+    onClose: () => setShowModal(false),
+    reset: resetForm,
+  })
+
+  const editMutation = useEditSale({
+    onClose: () => setShowModal(false),
+    reset: resetForm,
+  })
+
+  const deleteMutation = useDeleteSale()
 
   // Transform API data to component format
   const transformedSales: Sale[] = useMemo(() => {
     if (!salesData) return []
 
     try {
-      // Cast to unknown first, then to any[] to bypass type checking
       const dataArray = salesData as unknown as any[]
 
       if (!Array.isArray(dataArray)) {
@@ -67,7 +123,7 @@ export default function SalesManagement() {
             ? new Date(sale.saleDate).toISOString().split('T')[0]
             : '',
           totalAmount: sale.totalAmount || 0,
-          status: 'completed',
+          status: sale.status || 'completed',
           items: (sale.Details || []).map((detail: any) => ({
             itemId: detail.itemId || 0,
             itemName: detail.itemName || '',
@@ -82,56 +138,36 @@ export default function SalesManagement() {
     }
   }, [salesData])
 
-  const [sales, setSales] = useState<Sale[]>([])
-  const [showModal, setShowModal] = useState(false)
-  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
-
-  const [formData, setFormData] = useState<FormData>({
-    customerId: '',
-    saleDate: new Date().toISOString().split('T')[0],
-    status: 'completed',
-    items: [],
-  })
-
-  // Update sales when salesData changes
+  // Load barcode scanner library
   useEffect(() => {
-    setSales(transformedSales)
-  }, [transformedSales])
+    const script = document.createElement('script')
+    script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
+    script.async = true
+    script.onload = () => {
+      setScannerLoaded(true)
+    }
+    document.body.appendChild(script)
 
-  // Extract unique customers from sales data
-  const customers = useMemo(() => {
-    const customerMap = new Map()
-    sales.forEach((sale) => {
-      if (!customerMap.has(sale.customerId)) {
-        customerMap.set(sale.customerId, {
-          customerId: sale.customerId,
-          name: sale.customerName,
-        })
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch((err: any) => console.error(err))
       }
-    })
-    return Array.from(customerMap.values())
-  }, [sales])
+      if (document.body.contains(script)) {
+        document.body.removeChild(script)
+      }
+    }
+  }, [])
 
-  // Extract unique items from sales data
-  const items = useMemo(() => {
-    const itemMap = new Map()
-    sales.forEach((sale) => {
-      sale.items.forEach((item) => {
-        if (!itemMap.has(item.itemId)) {
-          itemMap.set(item.itemId, {
-            itemId: item.itemId,
-            name: item.itemName,
-            unitPrice: item.unitPrice,
-          })
-        }
-      })
-    })
-    return Array.from(itemMap.values())
-  }, [sales])
+  // Cleanup scanner on unmount or modal close
+  useEffect(() => {
+    if (!showModal && scannerRef.current) {
+      scannerRef.current.stop().catch((err: any) => console.error(err))
+      scannerRef.current = null
+      setScanning(false)
+    }
+  }, [showModal])
 
-  const filteredSales = sales.filter(
+  const filteredSales = transformedSales.filter(
     (sale) =>
       sale?.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       sale?.saleMasterId?.toString().includes(searchTerm)
@@ -139,12 +175,7 @@ export default function SalesManagement() {
 
   const handleCreate = () => {
     setModalMode('create')
-    setFormData({
-      customerId: '',
-      saleDate: new Date().toISOString().split('T')[0],
-      status: 'completed',
-      items: [],
-    })
+    resetForm()
     setShowModal(true)
   }
 
@@ -162,7 +193,7 @@ export default function SalesManagement() {
 
   const handleDelete = (saleId: number) => {
     if (window.confirm('Are you sure you want to delete this sale?')) {
-      setSales(sales.filter((s) => s.saleMasterId !== saleId))
+      deleteMutation.mutate(saleId.toString())
     }
   }
 
@@ -193,20 +224,25 @@ export default function SalesManagement() {
     if (field === 'itemId') {
       const itemId = typeof value === 'string' ? parseInt(value) : value
       newItems[index].itemId = itemId
-      const item = items.find((i) => i.itemId === itemId)
-      if (item) {
-        newItems[index].unitPrice = item.unitPrice
-        newItems[index].itemName = item.name
+
+      const selectedProduct = itemproduct?.find(
+        (product) => product.itemId === itemId
+      )
+
+      if (selectedProduct) {
+        newItems[index].unitPrice = parseFloat(selectedProduct.price) || 0
+        newItems[index].itemName = selectedProduct.name || ''
+        newItems[index].amount =
+          newItems[index].quantity * newItems[index].unitPrice
       }
     } else if (field === 'quantity') {
       const qty = typeof value === 'string' ? parseFloat(value) : value
       newItems[index].quantity = isNaN(qty) ? 0 : qty
+      newItems[index].amount =
+        newItems[index].quantity * newItems[index].unitPrice
     } else if (field === 'unitPrice') {
       const price = typeof value === 'string' ? parseFloat(value) : value
       newItems[index].unitPrice = isNaN(price) ? 0 : price
-    }
-
-    if (field === 'quantity' || field === 'unitPrice') {
       newItems[index].amount =
         newItems[index].quantity * newItems[index].unitPrice
     }
@@ -221,41 +257,166 @@ export default function SalesManagement() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const customer = customers.find(
-      (c) => c.customerId === Number(formData.customerId)
-    )
-    const totalAmount = calculateTotal()
-
-    if (modalMode === 'create') {
-      const newSale: Sale = {
-        saleMasterId: Math.max(...sales.map((s) => s.saleMasterId), 0) + 1,
-        customerId: Number(formData.customerId),
-        customerName: customer?.name || '',
-        saleDate: formData.saleDate,
-        totalAmount,
-        status: formData.status,
-        items: formData.items,
-      }
-      setSales([...sales, newSale])
-    } else if (selectedSale) {
-      setSales(
-        sales.map((s) =>
-          s.saleMasterId === selectedSale.saleMasterId
-            ? {
-                ...s,
-                customerId: Number(formData.customerId),
-                customerName: customer?.name || '',
-                saleDate: formData.saleDate,
-                status: formData.status,
-                totalAmount,
-                items: formData.items,
-              }
-            : s
-        )
-      )
+    // Validation
+    if (!formData.customerId) {
+      alert('Please select a customer')
+      return
     }
 
-    setShowModal(false)
+    if (formData.items.length === 0) {
+      alert('Please add at least one item')
+      return
+    }
+
+    // Check if all items have valid data
+    const invalidItems = formData.items.some(
+      (item) => !item.itemId || item.quantity <= 0 || item.unitPrice <= 0
+    )
+
+    if (invalidItems) {
+      alert('Please ensure all items have valid product, quantity, and price')
+      return
+    }
+
+    const totalAmount = calculateTotal()
+    const totalQuantity = formData.items.reduce(
+      (sum, item) => sum + item.quantity,
+      0
+    )
+
+    if (modalMode === 'create') {
+      const createData: CreateSaleRequest = {
+        sale: {
+          paymentType: 'cash',
+          customerId: Number(formData.customerId),
+          saleDate: formData.saleDate,
+          totalQuantity: totalQuantity,
+          totalAmount: totalAmount,
+          discountAmount: 0,
+          notes: null,
+        },
+        items: formData.items.map((item) => ({
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          amount: item.amount,
+        })),
+      }
+      createMutation.mutate(createData)
+    } else if (selectedSale) {
+      const updateData: UpdateSaleRequest = {
+        sale: {
+          paymentType: 'cash',
+          customerId: Number(formData.customerId),
+          saleDate: formData.saleDate,
+          totalQuantity: totalQuantity,
+          totalAmount: totalAmount,
+          discountAmount: 0,
+          notes: null,
+        },
+        items: formData.items.map((item) => ({
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          amount: item.amount,
+        })),
+      }
+      editMutation.mutate({
+        id: selectedSale.saleMasterId.toString(),
+        data: updateData,
+      })
+    }
+  }
+
+  // Barcode Scanner Functions
+  const startCamera = async () => {
+    if (!scannerLoaded || !window.Html5Qrcode) {
+      alert('Scanner library is still loading. Please try again in a moment.')
+      return
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    const readerElement = document.getElementById('qr-reader')
+    if (!readerElement) {
+      console.error('Scanner element not found')
+      return
+    }
+
+    try {
+      const html5QrCode = new window.Html5Qrcode('qr-reader')
+      scannerRef.current = html5QrCode
+
+      await html5QrCode.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 150 },
+        },
+        (decodedText: string) => {
+          handleBarcodeDetected(decodedText)
+        },
+        (errorMessage: string) => {
+          // Ignore scanning errors
+        }
+      )
+
+      setScanning(true)
+    } catch (err) {
+      console.error('Error starting camera:', err)
+      alert(
+        'Unable to access camera. Please check permissions and ensure you are using HTTPS.'
+      )
+    }
+  }
+
+  const stopCamera = async () => {
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.stop()
+        scannerRef.current = null
+      } catch (err) {
+        console.error('Error stopping camera:', err)
+      }
+    }
+    setScanning(false)
+    setShowScanner(false)
+  }
+
+  const handleBarcodeDetected = (barcode: string) => {
+    const product = itemproduct?.find(
+      (p: any) => p.barcode === barcode || p.itemId.toString() === barcode
+    )
+
+    if (product) {
+      const existingIndex = formData.items.findIndex(
+        (item) => item.itemId === product.itemId
+      )
+
+      if (existingIndex >= 0) {
+        const newItems = [...formData.items]
+        newItems[existingIndex].quantity += 1
+        newItems[existingIndex].amount =
+          newItems[existingIndex].quantity * newItems[existingIndex].unitPrice
+        setFormData({ ...formData, items: newItems })
+      } else {
+        const newItem: SaleItem = {
+          itemId: product.itemId,
+          itemName: product.name,
+          quantity: 1,
+          unitPrice: parseFloat(product.price) || 0,
+          amount: parseFloat(product.price) || 0,
+        }
+        setFormData({
+          ...formData,
+          items: [...formData.items, newItem],
+        })
+      }
+
+      stopCamera()
+    } else {
+      alert('Product not found with this barcode')
+    }
   }
 
   return (
@@ -308,7 +469,7 @@ export default function SalesManagement() {
                   Total Sales
                 </p>
                 <p className="text-2xl font-bold text-slate-800 mt-1">
-                  {sales.length}
+                  {transformedSales.length}
                 </p>
               </div>
               <div className="bg-blue-100 p-3 rounded-lg">
@@ -324,7 +485,10 @@ export default function SalesManagement() {
                   Total Revenue
                 </p>
                 <p className="text-2xl font-bold text-slate-800 mt-1">
-                  ${sales.reduce((sum, s) => sum + s.totalAmount, 0).toFixed(2)}
+                  ৳
+                  {transformedSales
+                    .reduce((sum, s) => sum + s.totalAmount, 0)
+                    .toFixed(2)}
                 </p>
               </div>
               <div className="bg-green-100 p-3 rounded-lg">
@@ -340,11 +504,13 @@ export default function SalesManagement() {
                   Avg Sale Value
                 </p>
                 <p className="text-2xl font-bold text-slate-800 mt-1">
-                  $
-                  {sales.length
+                  ৳
+                  {transformedSales.length
                     ? (
-                        sales.reduce((sum, s) => sum + s.totalAmount, 0) /
-                        sales.length
+                        transformedSales.reduce(
+                          (sum, s) => sum + s.totalAmount,
+                          0
+                        ) / transformedSales.length
                       ).toFixed(2)
                     : '0.00'}
                 </p>
@@ -357,7 +523,7 @@ export default function SalesManagement() {
         </div>
 
         {/* Loading State */}
-        {!salesData && (
+        {salesLoading && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p className="text-slate-500">Loading sales data...</p>
@@ -365,15 +531,12 @@ export default function SalesManagement() {
         )}
 
         {/* Sales Table */}
-        {salesData && (
+        {!salesLoading && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">
-                      Sale ID
-                    </th>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">
                       Customer
                     </th>
@@ -389,9 +552,9 @@ export default function SalesManagement() {
                     <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">
                       Status
                     </th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-slate-700">
+                    {/* <th className="text-right px-6 py-4 text-sm font-semibold text-slate-700">
                       Actions
-                    </th>
+                    </th> */}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
@@ -400,11 +563,6 @@ export default function SalesManagement() {
                       key={sale.saleMasterId || `sale-${index}`}
                       className="hover:bg-slate-50 transition-colors"
                     >
-                      <td className="px-6 py-4">
-                        <span className="font-mono text-sm font-medium text-slate-700">
-                          #{sale.saleMasterId}
-                        </span>
-                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <span className="text-slate-700">
@@ -426,7 +584,7 @@ export default function SalesManagement() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="font-semibold text-green-600">
-                          ${sale.totalAmount.toFixed(2)}
+                          ৳{sale.totalAmount.toFixed(2)}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -434,7 +592,7 @@ export default function SalesManagement() {
                           {sale.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      {/* <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleEdit(sale)}
@@ -445,13 +603,14 @@ export default function SalesManagement() {
                           </button>
                           <button
                             onClick={() => handleDelete(sale.saleMasterId)}
-                            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                            disabled={deleteMutation.isPending}
+                            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors disabled:opacity-50"
                             title="Delete"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
                 </tbody>
@@ -484,7 +643,7 @@ export default function SalesManagement() {
               </button>
             </div>
 
-            <div className="p-6">
+            <form onSubmit={handleSubmit} className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -499,12 +658,9 @@ export default function SalesManagement() {
                     className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
                     <option value="">Select customer</option>
-                    {customers.map((customer) => (
-                      <option
-                        key={customer.customerId}
-                        value={customer.customerId}
-                      >
-                        {customer.name}
+                    {customer?.map((cust) => (
+                      <option key={cust.customerId} value={cust.customerId}>
+                        {cust.name}
                       </option>
                     ))}
                   </select>
@@ -532,15 +688,70 @@ export default function SalesManagement() {
                   <h3 className="text-lg font-semibold text-slate-800">
                     Sale Items
                   </h3>
-                  <button
-                    type="button"
-                    onClick={handleAddItem}
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Item
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!showScanner) {
+                          setShowScanner(true)
+                          setTimeout(() => startCamera(), 200)
+                        } else {
+                          stopCamera()
+                        }
+                      }}
+                      className={`${
+                        showScanner
+                          ? 'bg-red-500 hover:bg-red-600'
+                          : 'bg-green-500 hover:bg-green-600'
+                      } text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors`}
+                    >
+                      {showScanner ? (
+                        <>
+                          <CameraOff className="w-4 h-4" />
+                          Stop Scanner
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="w-4 h-4" />
+                          Scan Barcode
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddItem}
+                      className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1 px-4 py-2 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Item
+                    </button>
+                  </div>
                 </div>
+
+                {/* Barcode Scanner */}
+                {showScanner && (
+                  <div className="mb-4 bg-slate-900 rounded-xl p-4">
+                    <div id="qr-reader" className="w-full"></div>
+                    <p className="text-white text-sm text-center mt-3">
+                      {scanning
+                        ? 'Scanning... Position barcode in view'
+                        : 'Initializing camera...'}
+                    </p>
+                    <div className="mt-3">
+                      <input
+                        type="text"
+                        placeholder="Or enter barcode manually and press Enter"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && e.currentTarget.value) {
+                            handleBarcodeDetected(e.currentTarget.value)
+                            e.currentTarget.value = ''
+                          }
+                        }}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   {formData.items.map((item, index) => (
@@ -559,7 +770,7 @@ export default function SalesManagement() {
                             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                           >
                             <option value="">Select product</option>
-                            {items.map((product) => (
+                            {itemproduct?.map((product) => (
                               <option
                                 key={product.itemId}
                                 value={product.itemId}
@@ -606,7 +817,7 @@ export default function SalesManagement() {
                               )
                             }
                             required
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-blue-50"
                           />
                         </div>
 
@@ -617,7 +828,7 @@ export default function SalesManagement() {
                             </label>
                             <input
                               type="text"
-                              value={`$${(item.amount || 0).toFixed(2)}`}
+                              value={`${(item.amount || 0).toFixed(2)}`}
                               readOnly
                               className="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700"
                             />
@@ -639,6 +850,9 @@ export default function SalesManagement() {
                   <div className="text-center py-8 bg-slate-50 rounded-xl">
                     <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                     <p className="text-slate-500 text-sm">No items added yet</p>
+                    <p className="text-slate-400 text-xs mt-1">
+                      Use the barcode scanner or add items manually
+                    </p>
                   </div>
                 )}
               </div>
@@ -650,7 +864,7 @@ export default function SalesManagement() {
                     Total Amount:
                   </span>
                   <span className="text-2xl font-bold text-blue-600">
-                    ${calculateTotal().toFixed(2)}
+                    ৳{calculateTotal().toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -665,15 +879,24 @@ export default function SalesManagement() {
                   Cancel
                 </button>
                 <button
-                  type="button"
-                  onClick={handleSubmit}
-                  className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl flex items-center gap-2 transition-colors shadow-md"
+                  type="submit"
+                  disabled={createMutation.isPending || editMutation.isPending}
+                  className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl flex items-center gap-2 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Save className="w-4 h-4" />
-                  {modalMode === 'create' ? 'Create Sale' : 'Update Sale'}
+                  {createMutation.isPending || editMutation.isPending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      {modalMode === 'create' ? 'Creating...' : 'Updating...'}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      {modalMode === 'create' ? 'Create Sale' : 'Update Sale'}
+                    </>
+                  )}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       )}
