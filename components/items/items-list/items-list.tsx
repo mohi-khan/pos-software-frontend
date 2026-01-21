@@ -7,7 +7,9 @@ import {
   Plus,
   X,
   Trash2,
+  
 } from 'lucide-react'
+import Barcode from 'react-barcode'
 import { useItems } from '@/hooks/use-items'
 import { useCategories } from '@/hooks/use-categories'
 import { GetItem } from '@/types/items'
@@ -49,9 +51,9 @@ interface Item {
 }
 
 const InventoryManagement: React.FC = () => {
-  const {data: item } = useItems();
-  console.log("this is items data", item)
-const { data: categoriesData, isLoading, error } = useCategories()
+  const { data: item } = useItems()
+  console.log('this is items data', item)
+  const { data: categoriesData, isLoading, error } = useCategories()
 
   const [items, setItems] = useState<Item[]>([
     {
@@ -85,7 +87,7 @@ const { data: categoriesData, isLoading, error } = useCategories()
       expanded: false,
     },
   ])
-  console.log("demo data: ", items)
+  console.log('demo data: ', items)
 
   const [showModal, setShowModal] = useState(false)
   const [showVariantModal, setShowVariantModal] = useState(false)
@@ -152,7 +154,7 @@ const { data: categoriesData, isLoading, error } = useCategories()
   }
 
   const deleteSelectedItems = () => {
- items.filter((item) => !selectedItems.has(item.itemId))
+    items.filter((item) => !selectedItems.has(item.itemId))
     setSelectedItems(new Set())
   }
 
@@ -530,7 +532,7 @@ const { data: categoriesData, isLoading, error } = useCategories()
                   className="border rounded px-3 py-1.5 text-sm bg-white min-w-[150px]"
                 >
                   <option>All items</option>
-                  {categoriesData?.map((category, categoryId ) => (
+                  {categoriesData?.map((category, categoryId) => (
                     <option key={categoryId}>{category.name}</option>
                   ))}
                 </select>
@@ -544,7 +546,7 @@ const { data: categoriesData, isLoading, error } = useCategories()
                   className="border rounded px-3 py-1.5 text-sm bg-white min-w-[150px]"
                 >
                   <option>All items</option>
-                  <option >Low stock</option>
+                  <option>Low stock</option>
                   <option>Out stock</option>
                 </select>
               </div>
@@ -608,23 +610,26 @@ const { data: categoriesData, isLoading, error } = useCategories()
                   onChange={toggleAllItems}
                 />
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-center p-4 text-sm font-medium text-gray-700">
                 Item name ↑
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-center p-4 text-sm font-medium text-gray-700">
                 Category
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-center p-4 text-sm font-medium text-gray-700">
                 Price
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-center p-4 text-sm font-medium text-gray-700">
                 Cost
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-center p-4 text-sm font-medium text-gray-700">
                 Margin
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-center p-4 text-sm font-medium text-gray-700">
                 In stock
+              </th>
+              <th className="text-center p-4 text-sm font-medium text-gray-700">
+                Barcode
               </th>
             </tr>
           </thead>
@@ -636,7 +641,7 @@ const { data: categoriesData, isLoading, error } = useCategories()
                 </td>
               </tr>
             ) : (
-              item?.map((items:GetItem) => (
+              item?.map((items: GetItem) => (
                 <React.Fragment key={items.itemId}>
                   <tr className="border-b hover:bg-gray-50">
                     <td className="p-4">
@@ -680,8 +685,22 @@ const { data: categoriesData, isLoading, error } = useCategories()
                     <td className="p-4 text-gray-700">
                       {items.inStock?.toLocaleString() || 0}
                     </td>
+                    <td className="p-4 text-gray-700">
+                      {items.barcode ? (
+                        <div className="flex flex-col items-center">
+                          <Barcode
+                            value={String(items.barcode)}
+                            width={1.2}
+                            height={40}
+                            fontSize={12}
+                            displayValue={true} // shows number under barcode
+                          />
+                        </div>
+                      ) : (
+                        0
+                      )}
+                    </td>
                   </tr>
-                  
                 </React.Fragment>
               ))
             )}
