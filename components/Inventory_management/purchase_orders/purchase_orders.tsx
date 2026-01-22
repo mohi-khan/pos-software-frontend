@@ -44,11 +44,13 @@ import {
   useDeletePurchaseOrder 
 } from '@/hooks/use-purchase-orders'
 import { useSuppliers } from '@/hooks/use-supplier'
-
 import { CustomCombobox } from '@/utils/custom-combobox'
 import { toast } from '@/hooks/use-toast'
 import { useItems } from '@/hooks/use-items'
 
+// ============================================================
+// TYPE DEFINITIONS
+// ============================================================
 type PurchaseOrderStatus = 'Draft' | 'Pending' | 'Partially received' | 'Closed'
 
 type Item = {
@@ -96,28 +98,37 @@ type ReceiveItem = {
 
 type View = 'list' | 'detail'
 
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 const PurchaseOrders = () => {
+  // API Hooks
   const { data: query } = usePurchaseOrders()
   const { data: suppliers } = useSuppliers()
   const { data: allItems } = useItems()
-  console.log("datatataaasfsdfsdf: ", allItems)
   
+  // View State
   const [view, setView] = useState<View>('list')
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null)
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([])
   
+  // Filter State
   const [statusFilter, setStatusFilter] = useState<string>('All')
   const [supplierFilter, setSupplierFilter] = useState<string>('All suppliers')
-  const [searchQuery, setSearchQuery] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  
+  // Dialog State
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isReceiveDialogOpen, setIsReceiveDialogOpen] = useState(false)
+  
+  // Receive Dialog State
   const [receiveItems, setReceiveItems] = useState<ReceiveItem[]>([])
   const [selectedAdditionalCosts, setSelectedAdditionalCosts] = useState<string[]>([])
-  const [showFilters, setShowFilters] = useState(false)
 
+  // Form State
   const [formData, setFormData] = useState<{
     supplierId: number | null
     date: string
@@ -127,14 +138,16 @@ const PurchaseOrders = () => {
     additionalCosts: AdditionalCost[]
   }>({
     supplierId: null,
-    date: '',
+    date: new Date().toISOString().split('T')[0],
     expectedDate: '',
     notes: '',
     items: [],
     additionalCosts: [],
   })
 
-  // Reset form function
+  // ============================================================
+  // MUTATIONS
+  // ============================================================
   const resetForm = () => {
     setFormData({
       supplierId: null,
@@ -146,51 +159,38 @@ const PurchaseOrders = () => {
     })
   }
 
-  // Create mutation
   const createMutation = useCreatePurchaseOrder({
     onClose: () => setIsCreateDialogOpen(false),
     reset: resetForm,
   })
 
-  // Update mutation
   const updateMutation = useUpdatePurchaseOrder({
     onClose: () => setIsEditDialogOpen(false),
     reset: resetForm,
   })
 
-  // Delete mutation
   const deleteMutation = useDeletePurchaseOrder()
 
-  // Transform API data to match component structure
+  // ============================================================
+  // DATA TRANSFORMATION
+  // ============================================================
   useEffect(() => {
     if (query && Array.isArray(query)) {
       const transformedData: PurchaseOrder[] = query.map((po: any) => ({
         id: po.purchaseOrderId.toString(),
         purchaseOrderId: po.purchaseOrderId,
         orderNumber: po.orderNumber,
-        date: new Date(po.orderDate).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }),
-        expectedDate: po.expectedDate
-          ? new Date(po.expectedDate).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })
-          : '',
+        date: po.orderDate,
+        expectedDate: po.expectedDate || '',
         orderedBy: po.orderedBy,
         supplierId: po.supplierId,
         supplier: po.supplierName || `Supplier ${po.supplierId}`,
         supplierEmail: '',
         supplierPhone: '',
         destinationStoreId: po.destinationStoreId,
-        destinationStore: po.destinationStoreId
-          ? `Store ${po.destinationStoreId}`
-          : 'N/A',
+        destinationStore: po.destinationStoreId ? `Store ${po.destinationStoreId}` : 'N/A',
         status: po.status as PurchaseOrderStatus,
-        received: po.received,
+        received: po.received || '0 of 0',
         notes: po.notes || '',
         items: po.items.map((item: any) => {
           const itemDetails = allItems?.find((i: any) => i.itemId === item.itemId)
@@ -216,6 +216,10 @@ const PurchaseOrders = () => {
     }
   }, [query, allItems])
 
+  // Continue to Part 2...
+  // ============================================================
+  // EVENT HANDLERS - NAVIGATION
+  // ============================================================
   const handleRowClick = (order: PurchaseOrder) => {
     setSelectedOrder(order)
     setView('detail')
@@ -230,10 +234,8 @@ const PurchaseOrders = () => {
     if (selectedOrder) {
       setFormData({
         supplierId: selectedOrder.supplierId,
-        date: new Date(selectedOrder.date).toISOString().split('T')[0],
-        expectedDate: selectedOrder.expectedDate 
-          ? new Date(selectedOrder.expectedDate).toISOString().split('T')[0] 
-          : '',
+        date: selectedOrder.date,
+        expectedDate: selectedOrder.expectedDate || '',
         notes: selectedOrder.notes,
         items: selectedOrder.items,
         additionalCosts: selectedOrder.additionalCosts,
@@ -247,6 +249,9 @@ const PurchaseOrders = () => {
     setSelectedOrder(null)
   }
 
+  // ============================================================
+  // EVENT HANDLERS - ITEMS
+  // ============================================================
   const handleAddItem = () => {
     const newItem: Item = {
       id: Date.now().toString(),
@@ -255,7 +260,7 @@ const PurchaseOrders = () => {
       sku: '',
       inStock: 0,
       incoming: 0,
-      quantity: 0,
+      quantity: 1,
       purchaseCost: 0,
       amount: 0,
     }
@@ -277,7 +282,6 @@ const PurchaseOrders = () => {
       if (item.id === itemId) {
         const updatedItem = { ...item, [field]: value }
         
-        // If selecting an item from the list
         if (field === 'itemId') {
           const selectedItem = allItems?.find((i: any) => i.itemId === value)
           if (selectedItem) {
@@ -287,7 +291,6 @@ const PurchaseOrders = () => {
           }
         }
         
-        // Calculate amount when quantity or purchase cost changes
         if (field === 'quantity' || field === 'purchaseCost') {
           updatedItem.amount = updatedItem.quantity * updatedItem.purchaseCost
         }
@@ -298,6 +301,9 @@ const PurchaseOrders = () => {
     setFormData({ ...formData, items: updatedItems })
   }
 
+  // ============================================================
+  // EVENT HANDLERS - ADDITIONAL COSTS
+  // ============================================================
   const handleAddAdditionalCost = () => {
     const newCost: AdditionalCost = {
       id: Date.now().toString(),
@@ -313,9 +319,7 @@ const PurchaseOrders = () => {
   const handleRemoveAdditionalCost = (costId: string) => {
     setFormData({
       ...formData,
-      additionalCosts: formData.additionalCosts.filter(
-        (cost) => cost.id !== costId
-      ),
+      additionalCosts: formData.additionalCosts.filter((cost) => cost.id !== costId),
     })
   }
 
@@ -330,6 +334,9 @@ const PurchaseOrders = () => {
     setFormData({ ...formData, additionalCosts: updatedCosts })
   }
 
+  // ============================================================
+  // UTILITY FUNCTIONS
+  // ============================================================
   const calculateTotal = () => {
     const itemsTotal = formData.items.reduce((sum, item) => sum + item.amount, 0)
     const costsTotal = formData.additionalCosts.reduce((sum, cost) => sum + cost.amount, 0)
@@ -338,13 +345,15 @@ const PurchaseOrders = () => {
 
   const generateOrderNumber = () => {
     const lastOrder = purchaseOrders[purchaseOrders.length - 1]
-    const lastNumber = lastOrder 
-      ? parseInt(lastOrder.orderNumber.replace('PO', '')) 
-      : 1000
+    const lastNumber = lastOrder ? parseInt(lastOrder.orderNumber.replace('PO', '')) : 1000
     return `PO${lastNumber + 1}`
   }
 
+  // ============================================================
+  // SAVE HANDLERS
+  // ============================================================
   const handleSave = async () => {
+    // Validation
     if (!formData.supplierId) {
       toast({
         title: 'Validation Error',
@@ -372,7 +381,6 @@ const PurchaseOrders = () => {
       return
     }
 
-    // Validate all items have itemId, quantity, and purchaseCost
     const invalidItems = formData.items.filter(
       item => !item.itemId || item.quantity <= 0 || item.purchaseCost <= 0
     )
@@ -380,12 +388,13 @@ const PurchaseOrders = () => {
     if (invalidItems.length > 0) {
       toast({
         title: 'Validation Error',
-        description: 'All items must have a valid item, quantity, and purchase cost',
+        description: 'All items must have a valid item, quantity greater than 0, and purchase cost',
         variant: 'destructive',
       })
       return
     }
 
+    // Create or Update
     if (isCreateDialogOpen) {
       const payload = {
         order: {
@@ -416,8 +425,6 @@ const PurchaseOrders = () => {
     } else if (isEditDialogOpen && selectedOrder) {
       const payload = {
         order: {
-          orderNumber: selectedOrder.orderNumber,
-          orderedBy: selectedOrder.orderedBy,
           supplierId: formData.supplierId,
           orderDate: formData.date,
           expectedDate: formData.expectedDate || undefined,
@@ -438,7 +445,7 @@ const PurchaseOrders = () => {
       }
 
       updateMutation.mutate({
-        id: selectedOrder.id,
+        id: selectedOrder.purchaseOrderId.toString(),
         data: payload,
       })
     }
@@ -458,6 +465,19 @@ const PurchaseOrders = () => {
       toast({
         title: 'Validation Error',
         description: 'Please add at least one item',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const invalidItems = formData.items.filter(
+      item => !item.itemId || item.quantity <= 0 || item.purchaseCost <= 0
+    )
+    
+    if (invalidItems.length > 0) {
+      toast({
+        title: 'Validation Error',
+        description: 'All items must have a valid item, quantity, and purchase cost',
         variant: 'destructive',
       })
       return
@@ -491,6 +511,9 @@ const PurchaseOrders = () => {
     createMutation.mutate(payload)
   }
 
+  // ============================================================
+  // EXPORT HANDLER
+  // ============================================================
   const handleExportToCSV = () => {
     if (!selectedOrder) return
 
@@ -533,6 +556,9 @@ const PurchaseOrders = () => {
     document.body.removeChild(link)
   }
 
+  // ============================================================
+  // RECEIVE HANDLERS (Placeholder for future implementation)
+  // ============================================================
   const handleReceive = () => {
     if (selectedOrder) {
       const items = selectedOrder.items.map((item) => ({
@@ -580,16 +606,6 @@ const PurchaseOrders = () => {
   const handleConfirmReceive = () => {
     if (!selectedOrder) return
 
-    const totalReceived = receiveItems.reduce(
-      (sum, item) => sum + item.toReceive,
-      0
-    )
-    const totalOrdered = selectedOrder.items.reduce(
-      (sum, item) => sum + item.quantity,
-      0
-    )
-
-    // This would need to call an API endpoint to update the receive status
     toast({
       title: 'Receive functionality',
       description: 'This would update the received quantities via API',
@@ -598,11 +614,12 @@ const PurchaseOrders = () => {
     setIsReceiveDialogOpen(false)
   }
 
+  // ============================================================
+  // FILTERING
+  // ============================================================
   const filteredOrders = purchaseOrders.filter((order) => {
-    const matchesStatus =
-      statusFilter === 'All' || order.status === statusFilter
-    const matchesSupplier =
-      supplierFilter === 'All suppliers' || order.supplier === supplierFilter
+    const matchesStatus = statusFilter === 'All' || order.status === statusFilter
+    const matchesSupplier = supplierFilter === 'All suppliers' || order.supplier === supplierFilter
     const matchesSearch =
       searchTerm === '' ||
       order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -611,11 +628,16 @@ const PurchaseOrders = () => {
     return matchesStatus && matchesSupplier && matchesSearch
   })
 
+  // Continue to Part 3 for rendering...
+  // ============================================================
+  // RENDER FORM (Used in Create/Edit Dialogs)
+  // ============================================================
   const renderForm = (isEdit: boolean) => {
     const total = calculateTotal()
 
     return (
       <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+        {/* Supplier Selection */}
         <div>
           <Label htmlFor="supplier">Supplier *</Label>
           <CustomCombobox
@@ -643,6 +665,7 @@ const PurchaseOrders = () => {
           />
         </div>
 
+        {/* Date Fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="date">Purchase order date *</Label>
@@ -669,6 +692,7 @@ const PurchaseOrders = () => {
           </div>
         </div>
 
+        {/* Notes */}
         <div>
           <Label htmlFor="notes">Notes</Label>
           <Textarea
@@ -679,12 +703,14 @@ const PurchaseOrders = () => {
             }
             placeholder="Add notes..."
             className="min-h-[80px]"
+            maxLength={500}
           />
           <p className="text-xs text-muted-foreground mt-1">
             {formData.notes?.length || 0} / 500
           </p>
         </div>
 
+        {/* Items Table */}
         <div>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
             <h3 className="font-medium">Items *</h3>
@@ -790,6 +816,7 @@ const PurchaseOrders = () => {
           </div>
         </div>
 
+        {/* Additional Costs */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium">Additional cost</h3>
@@ -838,11 +865,13 @@ const PurchaseOrders = () => {
           )}
         </div>
 
+        {/* Total */}
         <div className="flex items-center justify-between pt-4 border-t">
           <span className="font-medium">Total</span>
           <span className="font-medium">Tk{total.toFixed(2)}</span>
         </div>
 
+        {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-4">
           <Button
             variant="outline"
@@ -878,10 +907,14 @@ const PurchaseOrders = () => {
     )
   }
 
+  // ============================================================
+  // RENDER: LIST VIEW
+  // ============================================================
   if (view === 'list') {
     return (
       <>
         <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+          {/* Header Actions */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
             <Button
               onClick={handleCreateNew}
@@ -945,6 +978,7 @@ const PurchaseOrders = () => {
             </div>
           </div>
 
+          {/* Filters */}
           <div
             className={`${showFilters ? 'flex' : 'hidden md:flex'} flex-col md:flex-row items-stretch md:items-end gap-4`}
           >
@@ -991,23 +1025,20 @@ const PurchaseOrders = () => {
             </div>
           </div>
 
+          {/* Orders Table */}
           <Card>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[120px]">
-                      Purchase order #
-                    </TableHead>
+                    <TableHead className="min-w-[120px]">Purchase order #</TableHead>
                     <TableHead className="min-w-[100px]">Date</TableHead>
                     <TableHead className="min-w-[120px]">Supplier</TableHead>
                     <TableHead className="min-w-[120px]">Store</TableHead>
                     <TableHead className="min-w-[100px]">Status</TableHead>
                     <TableHead className="min-w-[140px]">Received</TableHead>
                     <TableHead className="min-w-[120px]">Expected on</TableHead>
-                    <TableHead className="text-right min-w-[100px]">
-                      Total
-                    </TableHead>
+                    <TableHead className="text-right min-w-[100px]">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1023,18 +1054,16 @@ const PurchaseOrders = () => {
                   ) : (
                     filteredOrders.map((order) => {
                       const total =
-                        order.items.reduce(
-                          (sum, item) => sum + item.amount,
-                          0
-                        ) +
-                        order.additionalCosts.reduce(
-                          (sum, cost) => sum + cost.amount,
-                          0
-                        )
+                        order.items.reduce((sum, item) => sum + item.amount, 0) +
+                        order.additionalCosts.reduce((sum, cost) => sum + cost.amount, 0)
+                      
+                      const [receivedCount, totalCount] = order.received.split(' of ').map(n => parseInt(n))
+                      const receivedPercentage = totalCount > 0 ? (receivedCount / totalCount) * 100 : 0
+                      
                       return (
                         <TableRow
                           key={order.id}
-                          className="cursor-pointer"
+                          className="cursor-pointer hover:bg-muted/50"
                           onClick={() => handleRowClick(order)}
                         >
                           <TableCell className="font-medium text-blue-600">
@@ -1050,7 +1079,9 @@ const PurchaseOrders = () => {
                                   ? 'text-blue-600'
                                   : order.status === 'Closed'
                                     ? 'text-gray-600'
-                                    : 'text-orange-600'
+                                    : order.status === 'Draft'
+                                      ? 'text-gray-500'
+                                      : 'text-orange-600'
                               }`}
                             >
                               {order.status}
@@ -1061,9 +1092,7 @@ const PurchaseOrders = () => {
                               <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[100px]">
                                 <div
                                   className="bg-blue-600 h-2 rounded-full"
-                                  style={{
-                                    width: `${(parseInt(order.received.split(' ')[0]) / parseInt(order.received.split(' ')[2])) * 100}%`,
-                                  }}
+                                  style={{ width: `${receivedPercentage}%` }}
                                 />
                               </div>
                               <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -1071,7 +1100,7 @@ const PurchaseOrders = () => {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell>{order.expectedDate}</TableCell>
+                          <TableCell>{order.expectedDate || 'N/A'}</TableCell>
                           <TableCell className="text-right font-medium">
                             Tk{total.toFixed(2)}
                           </TableCell>
@@ -1084,6 +1113,7 @@ const PurchaseOrders = () => {
             </div>
           </Card>
 
+          {/* Pagination */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-sm">
               <span>Page:</span>
@@ -1111,6 +1141,7 @@ const PurchaseOrders = () => {
           </div>
         </div>
 
+        {/* Create Dialog */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -1123,6 +1154,9 @@ const PurchaseOrders = () => {
     )
   }
 
+  // ============================================================
+  // RENDER: DETAIL VIEW
+  // ============================================================
   const total = selectedOrder
     ? selectedOrder.items.reduce((sum, item) => sum + item.amount, 0) +
       selectedOrder.additionalCosts.reduce((sum, cost) => sum + cost.amount, 0)
@@ -1131,6 +1165,7 @@ const PurchaseOrders = () => {
   return (
     <>
       <div className="p-4 md:p-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-4 w-full sm:w-auto">
             <Button variant="ghost" size="icon" onClick={handleBack}>
@@ -1162,15 +1197,10 @@ const PurchaseOrders = () => {
             >
               EDIT
             </Button>
-            <Button
-              onClick={handleReceive}
-              className="bg-green-500 hover:bg-green-600 flex-1 sm:flex-none"
-            >
-              RECEIVE
-            </Button>
           </div>
         </div>
 
+        {/* Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6">
           <Card>
             <CardHeader className="pb-3">
@@ -1203,7 +1233,7 @@ const PurchaseOrders = () => {
             </CardHeader>
             <CardContent>
               <p className="text-lg font-medium">
-                {selectedOrder?.expectedDate}
+                {selectedOrder?.expectedDate || 'N/A'}
               </p>
             </CardContent>
           </Card>
@@ -1220,6 +1250,7 @@ const PurchaseOrders = () => {
           </Card>
         </div>
 
+        {/* Items Table */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Items</CardTitle>
@@ -1248,15 +1279,9 @@ const PurchaseOrders = () => {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                        {item.inStock}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {item.incoming}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {item.quantity}
-                      </TableCell>
+                      <TableCell className="text-right">{item.inStock}</TableCell>
+                      <TableCell className="text-right">{item.incoming}</TableCell>
+                      <TableCell className="text-right">{item.quantity}</TableCell>
                       <TableCell className="text-right">
                         Tk{item.purchaseCost.toFixed(2)}
                       </TableCell>
@@ -1271,27 +1296,29 @@ const PurchaseOrders = () => {
           </CardContent>
         </Card>
 
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Additional costs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {selectedOrder?.additionalCosts.map((cost) => (
-                <div
-                  key={cost.id}
-                  className="flex items-center justify-between py-2"
-                >
-                  <span>{cost.name}</span>
-                  <span className="font-medium">
-                    Tk{cost.amount.toFixed(2)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Additional Costs */}
+        {selectedOrder && selectedOrder.additionalCosts.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Additional costs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {selectedOrder.additionalCosts.map((cost) => (
+                  <div
+                    key={cost.id}
+                    className="flex items-center justify-between py-2"
+                  >
+                    <span>{cost.name}</span>
+                    <span className="font-medium">Tk{cost.amount.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
+        {/* Notes */}
         {selectedOrder?.notes && (
           <Card className="mb-6">
             <CardHeader>
@@ -1305,6 +1332,7 @@ const PurchaseOrders = () => {
           </Card>
         )}
 
+        {/* Total */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between text-lg font-semibold">
@@ -1315,6 +1343,7 @@ const PurchaseOrders = () => {
         </Card>
       </div>
 
+      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1324,6 +1353,7 @@ const PurchaseOrders = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Receive Dialog (Placeholder) */}
       <Dialog open={isReceiveDialogOpen} onOpenChange={setIsReceiveDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>

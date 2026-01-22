@@ -22,6 +22,7 @@ import {
 import { useCustomers } from '@/hooks/use-customers'
 import { useItems } from '@/hooks/use-items'
 import { CreateSaleRequest, UpdateSaleRequest } from '@/types/sales'
+import { number } from 'zod'
 
 // Load html5-qrcode library
 declare global {
@@ -230,7 +231,7 @@ export default function SalesManagement() {
       )
 
       if (selectedProduct) {
-        newItems[index].unitPrice = parseFloat(selectedProduct.price) || 0
+        newItems[index].unitPrice = Number(selectedProduct.price) || 0
         newItems[index].itemName = selectedProduct.name || ''
         newItems[index].amount =
           newItems[index].quantity * newItems[index].unitPrice
@@ -383,41 +384,81 @@ export default function SalesManagement() {
     setShowScanner(false)
   }
 
-  const handleBarcodeDetected = (barcode: string) => {
-    const product = itemproduct?.find(
-      (p: any) => p.barcode === barcode || p.itemId.toString() === barcode
+  // const handleBarcodeDetected = (barcode: string) => {
+  //   const product = itemproduct?.find(
+  //     (p: any) => p.barcode === barcode || p.itemId.toString() === barcode
+  //   )
+
+  //   if (product) {
+  //     const existingIndex = formData.items.findIndex(
+  //       (item) => item.itemId === product.itemId
+  //     )
+
+  //     if (existingIndex >= 0) {
+  //       const newItems = [...formData.items]
+  //       newItems[existingIndex].quantity += 1
+  //       newItems[existingIndex].amount =
+  //         newItems[existingIndex].quantity * newItems[existingIndex].unitPrice
+  //       setFormData({ ...formData, items: newItems })
+  //     } else {
+  //       const newItem: SaleItem = {
+  //         itemId: product.itemId,
+  //         itemName: product.name,
+  //         quantity: 1,
+  //         unitPrice: parseFloat(product.price) || 0,
+  //         amount: parseFloat(product.price) || 0,
+  //       }
+  //       setFormData({
+  //         ...formData,
+  //         items: [...formData.items, newItem],
+  //       })
+  //     }
+
+  //     stopCamera()
+  //   } else {
+  //     alert('Product not found with this barcode')
+  //   }
+  // }
+  const handleBarcodeDetected = (barcode: string | null) => {
+  if (!barcode) return
+
+  const product = itemproduct?.find(
+    (p: any) => p.barcode === barcode || p.itemId.toString() === barcode
+  )
+
+  if (product) {
+    const existingIndex = formData.items.findIndex(
+      (item) => item.itemId === product.itemId
     )
 
-    if (product) {
-      const existingIndex = formData.items.findIndex(
-        (item) => item.itemId === product.itemId
-      )
+    if (existingIndex >= 0) {
+      const newItems = [...formData.items]
+      newItems[existingIndex].quantity += 1
+      newItems[existingIndex].amount =
+        newItems[existingIndex].quantity * newItems[existingIndex].unitPrice
 
-      if (existingIndex >= 0) {
-        const newItems = [...formData.items]
-        newItems[existingIndex].quantity += 1
-        newItems[existingIndex].amount =
-          newItems[existingIndex].quantity * newItems[existingIndex].unitPrice
-        setFormData({ ...formData, items: newItems })
-      } else {
-        const newItem: SaleItem = {
-          itemId: product.itemId,
-          itemName: product.name,
-          quantity: 1,
-          unitPrice: parseFloat(product.price) || 0,
-          amount: parseFloat(product.price) || 0,
-        }
-        setFormData({
-          ...formData,
-          items: [...formData.items, newItem],
-        })
+      setFormData({ ...formData, items: newItems })
+    } else {
+      const newItem: SaleItem = {
+        itemId: product.itemId,
+        itemName: product.name,
+        quantity: 1,
+        unitPrice: Number(product.price) || 0,
+        amount: Number(product.price) || 0,
       }
 
-      stopCamera()
-    } else {
-      alert('Product not found with this barcode')
+      setFormData({
+        ...formData,
+        items: [...formData.items, newItem],
+      })
     }
+
+    stopCamera()
+  } else {
+    alert('Product not found with this barcode')
   }
+}
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
