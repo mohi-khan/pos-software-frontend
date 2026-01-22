@@ -15,12 +15,13 @@ export const useItems = () => {
   useInitializeUser()
   const [token] = useAtom(tokenAtom)
 
-  const query = useQuery<GetItem[] | null, Error>({
+  const query = useQuery<GetItem[], Error>({
     queryKey: ['items'],
     queryFn: async () => {
       if (!token) throw new Error('Token not found')
       const response = await getItems(token)
-      return response.data ?? null
+      // Backend returns array directly or in data field
+      return Array.isArray(response) ? response : response.data ?? []
     },
     enabled: !!token,
   })
@@ -54,22 +55,41 @@ export const useCreateItem = ({
     mutationFn: async (data: CreateItem) => {
       if (!token) throw new Error('Token not found')
 
-      // 🔹 Convert strings to numbers
-      const payload = {
-        ...data,
-        price: Number(data.price),
+      // Convert to backend format
+      const payload: any = {
+        name: data.name.trim(),
         categoryId: Number(data.categoryId),
-
-        description: data.description ?? undefined, // convert null -> undefined
+        description: data.description || null,
+        availableForSale: data.availableForSale ?? true,
+        soldBy: data.soldBy || 'Each',
+        sku: data.sku || null,
+        barcode: data.barcode || null, // Backend auto-generates if null
+        compositeItem: data.compositeItem ?? false,
+        trackStock: data.trackStock ?? false,
+        inStock: data.inStock ? Number(data.inStock) : 0,
+        lowStock: data.lowStock ? Number(data.lowStock) : null,
+        primarySupplier: data.primarySupplier || null,
+        color: data.color || '#FFFFFF',
+        shape: data.shape || 'check',
+        imageUrl: data.imageUrl || null,
+        variantName: data.variantName || null,
+        optionName: data.optionName || null,
+        optionValue: data.optionValue || null,
+        variantSku: data.variantSku || null,
+        variantInStock: data.variantInStock ? Number(data.variantInStock) : null,
+        components: data.components || null,
       }
 
-      // 🔹 Check duplicate item name
-      const items = queryClient.getQueryData<GetItem[]>(['items'])
-      const isDuplicate = items?.some(
-        (item) =>
-          item.name.trim().toLowerCase() === payload.name.trim().toLowerCase()
-      )
-      if (isDuplicate) throw new Error('Item name already exists')
+      // Convert price/cost/margin to decimal strings or null
+      if (data.price) {
+        payload.price = String(Number(data.price))
+      }
+      if (data.cost) {
+        payload.cost = String(Number(data.cost))
+      }
+      if (data.margin) {
+        payload.margin = String(Number(data.margin))
+      }
 
       return createItem(payload, token)
     },
@@ -82,9 +102,10 @@ export const useCreateItem = ({
     },
 
     onError: (err: any) => {
+      const errorMsg = err?.response?.data?.message || err.message || 'Failed to create item'
       toast({
         title: 'Create failed',
-        description: err.message,
+        description: errorMsg,
         variant: 'destructive',
       })
     },
@@ -106,31 +127,46 @@ export const useEditItem = ({
   const [token] = useAtom(tokenAtom)
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: UpdateItem }) => {
+    mutationFn: async ({ id, data }: { id: number; data: UpdateItem }) => {
       if (!token) throw new Error('Token not found')
 
-      // 🔹 Convert strings to numbers if needed
-      const payload = {
-        ...data,
-        price: data.price !== undefined ? Number(data.price) : undefined,
-        categoryId:
-          data.categoryId !== undefined ? Number(data.categoryId) : undefined,
+      // Build payload with only provided fields
+      const payload: any = {}
 
-        description: data.description ?? undefined, // convert null -> undefined
+      if (data.name !== undefined) payload.name = data.name.trim()
+      if (data.categoryId !== undefined) payload.categoryId = Number(data.categoryId)
+      if (data.description !== undefined) payload.description = data.description || null
+      if (data.availableForSale !== undefined) payload.availableForSale = data.availableForSale
+      if (data.soldBy !== undefined) payload.soldBy = data.soldBy
+      if (data.sku !== undefined) payload.sku = data.sku || null
+      if (data.barcode !== undefined) payload.barcode = data.barcode || null
+      if (data.compositeItem !== undefined) payload.compositeItem = data.compositeItem
+      if (data.trackStock !== undefined) payload.trackStock = data.trackStock
+      if (data.inStock !== undefined) payload.inStock = Number(data.inStock)
+      if (data.lowStock !== undefined) payload.lowStock = data.lowStock ? Number(data.lowStock) : null
+      if (data.primarySupplier !== undefined) payload.primarySupplier = data.primarySupplier || null
+      if (data.color !== undefined) payload.color = data.color
+      if (data.shape !== undefined) payload.shape = data.shape
+      if (data.imageUrl !== undefined) payload.imageUrl = data.imageUrl || null
+      if (data.variantName !== undefined) payload.variantName = data.variantName || null
+      if (data.optionName !== undefined) payload.optionName = data.optionName || null
+      if (data.optionValue !== undefined) payload.optionValue = data.optionValue || null
+      if (data.variantSku !== undefined) payload.variantSku = data.variantSku || null
+      if (data.variantInStock !== undefined) payload.variantInStock = data.variantInStock ? Number(data.variantInStock) : null
+      if (data.components !== undefined) payload.components = data.components || null
+
+      // Handle price/cost/margin
+      if (data.price !== undefined) {
+        payload.price = data.price ? String(Number(data.price)) : null
+      }
+      if (data.cost !== undefined) {
+        payload.cost = data.cost ? String(Number(data.cost)) : null
+      }
+      if (data.margin !== undefined) {
+        payload.margin = data.margin ? String(Number(data.margin)) : null
       }
 
-      // 🔹 Check duplicate name
-      const items = queryClient.getQueryData<GetItem[]>(['items'])
-      const isDuplicate = payload.name
-        ? items?.some(
-            (item) =>
-              item.name.trim().toLowerCase() ===
-              payload.name!.trim().toLowerCase()
-          )
-        : false
-      if (isDuplicate) throw new Error('Item name already exists')
-
-      return editItem(id, payload, token)
+      return editItem(String(id), payload, token)
     },
 
     onSuccess: () => {
@@ -141,9 +177,10 @@ export const useEditItem = ({
     },
 
     onError: (err: any) => {
+      const errorMsg = err?.response?.data?.message || err.message || 'Failed to update item'
       toast({
         title: 'Update failed',
-        description: err.message,
+        description: errorMsg,
         variant: 'destructive',
       })
     },
@@ -159,9 +196,9 @@ export const useDeleteItem = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: string) => {
+    mutationFn: (id: number) => {
       if (!token) throw new Error('Token not found')
-      return deleteItem(id, token)
+      return deleteItem(String(id), token)
     },
 
     onSuccess: () => {
@@ -173,12 +210,14 @@ export const useDeleteItem = () => {
     },
 
     onError: (error: any) => {
+      const errorMsg = error?.response?.data?.message || error.message || 'Failed to delete item'
       toast({
         title: 'Delete failed',
-        description: error.message,
+        description: errorMsg,
         variant: 'destructive',
       })
-      console.error('Error deleting item:', error)
     },
   })
 }
+
+
